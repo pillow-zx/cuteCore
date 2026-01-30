@@ -1,13 +1,10 @@
 #ifndef __DEFS_H_
 #define __DEFS_H_
 
-
 #include <stdarg.h>
 #include <stdint.h>
 
-
 #include "generated/autoconf.h"
-
 
 // sbi.c
 #ifdef CONFIG_ISA_RISCV
@@ -27,18 +24,25 @@
 
 void shutdown();
 
-
-
-
 // uart.c
 void uart_init();
 void uart_write(const char *buf, int len);
 void uart_read(char *buf, int limit);
 
-
 // console.c
 int32_t printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void panic(const char *s) __attribute__((noreturn));
 
+// trap.c
+void trap_init();
+
+// syscall.c
+int64_t syscall(uint64_t syscall_id, uint64_t args[]);
+
+// fs.c
+int64_t sys_write(const uint64_t fd, const char *buf, uint64_t len);
+
+// process.c
+void sys_exit(int64_t code) __attribute__((noreturn));
 
 #endif // __DEFS_H_

@@ -44,4 +44,11 @@
         shutdown();                                                                                                    \
     } while (0);
 
+#define panic(format, ...)                                                                                             \
+    do {                                                                                                               \
+        _Log(LOG_LEVEL_ERROR, ANSI_FMT("[PANIC][%s:%d %s] " format, ANSI_FG_RED) "\n", __FILE__, __LINE__, __func__,   \
+             ##__VA_ARGS__);                                                                                           \
+        shutdown();                                                                                                    \
+    } while (0);
+
 #endif // __LOG_H__

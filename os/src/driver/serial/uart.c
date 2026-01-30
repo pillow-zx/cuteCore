@@ -1,6 +1,5 @@
 #include <stdint.h>
 
-
 #include "defs.h"
 
 static inline void uart_putc(char c) {
@@ -53,4 +52,3 @@ void uart_read(char *buf, int32_t limit) {
         }
     }
 }
-

@@ -11,14 +11,25 @@ INCLUDES = $(addprefix -I,$(INC_PATH))
 CFLAGS := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
 
-C_SRCS = $(filter %.c, $(SRCS))
-OBJS = $(C_SRCS:%.c=$(OBJ_DIR)/%.o)
+
+C_OBJS = $(filter %.c, $(SRCS))
+C_OBJS := $(C_OBJS:%.c=$(OBJ_DIR)/%.o)
+S_OBJS = $(filter %.S, $(SRCS))
+S_OBJS := $(S_OBJS:%.S=$(OBJ_DIR)/%.o)
+OBJS = $(C_OBJS) $(S_OBJS)
 
 $(OBJ_DIR)/%.o: %.c
 	@echo + CC $<
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	$(call call_fixdep, $(@:.o=.d), $@)
+
+
+$(OBJ_DIR)/%.o: %.S
+	@echo + AS $<
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 
 -include $(OBJS:.o=.d)
 
