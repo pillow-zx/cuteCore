@@ -1,0 +1,53 @@
+mainmenu "cutecore configuration nemu"
+
+choice
+    prompt "base isa"
+    default ISA_RISCV
+config ISA_RISCV
+    bool "RISC-V"
+config ISA_LOONGARCH
+    bool "LoongArch"
+endchoice
+
+config ISA
+    string
+    default "riscv64" if ISA_RISCV
+    default "loongarch64" if ISA_LOONGARCH
+    default "none"
+
+menu "build options"
+choice
+    prompt "Compiler Type"
+    default COMPILER_GCC
+config COMPILER_GCC
+    bool "GCC"
+config COMPILER_CLANG
+    bool "CLANG"
+endchoice
+
+config COMPILER
+    string
+    default "gcc" if COMPILER_GCC
+    default "clang" if COMPILER_CLANG
+    default "gcc"
+
+choice
+    prompt "Logging Level"
+    default LOG_NONE
+config LOG_NONE
+    bool "None"
+config LOG_ERROR
+    bool "Error"
+config LOG_WARN
+    bool "Warn"
+config LOG_DEBUG
+    bool "Debug"
+config LOG_INFO
+    bool "Info"
+endchoice
+endmenu
+
+
+# if ISA_RISCV
+# source "os/src/arch/riscv/Kconfig"
+# endif

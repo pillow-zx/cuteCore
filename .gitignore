@@ -1,0 +1,8 @@
+build/
+.vscode/
+.idea/
+.cache/
+.config
+.config.old
+compile_commands.json
+
