@@ -1,10 +1,11 @@
+#include <stddef.h>
 #include <stdint.h>
 
 #include "defs.h"
 #include "log.h"
 #include "syscall.h"
 
-int64_t syscall(uint64_t syscall_id, uint64_t args[]) {
+int64_t syscall(size_t syscall_id, size_t args[]) {
     int64_t ret = -1;
     switch (syscall_id) {
         case SYSCALL_WRITE: {
@@ -12,6 +13,12 @@ int64_t syscall(uint64_t syscall_id, uint64_t args[]) {
         }
         case SYSCALL_EXIT: {
             sys_exit((int64_t)args[0]);
+        }
+        case SYSCALL_YIELD: {
+            sys_yield();
+        }
+        case SYSCALL_GET_TIME: {
+            return sys_get_time();
         }
         default: {
             panic("Unknown syscall id: %lu", syscall_id);

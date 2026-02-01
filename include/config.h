@@ -1,0 +1,10 @@
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
+
+#define USER_STACK_SIZE 0x1000ULL
+#define KERNEL_STACK_SIZE 0x2000ULL
+#define MAX_APP_NUM 4ULL
+#define APP_BASE_ADDRESS 0x80400000ULL
+#define APP_SIZE_LIMIT 0x20000ULL
+
+#endif // !DEBUG

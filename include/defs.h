@@ -5,22 +5,9 @@
 #include <stdint.h>
 
 #include "generated/autoconf.h"
+#include "utils.h"
+#include "task.h"
 
-// sbi.c
-#ifdef CONFIG_ISA_RISCV
-
-#define SIFIVE_TEST_ADDR 0x100000
-#define UART0 0x10000000L
-
-// UART device
-#define RBR 0
-#define THR 0
-#define LSR 5
-#define LSR_TX_IDLE (1 << 5)
-#define LSR_RX_READY (1 << 0)
-#define UART_REG(reg) ((volatile unsigned char *)(UART0 + reg))
-
-#endif
 
 void shutdown();
 
@@ -30,11 +17,16 @@ void uart_write(const char *buf, int len);
 void uart_read(char *buf, int limit);
 
 // console.c
-int32_t printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-void panic(const char *s) __attribute__((noreturn));
+__format(printf, 1, 2) int32_t printf(const char *fmt, ...);
 
 // trap.c
 void trap_init();
+void trap_enable_timer_interrupt();
+
+// timer.c
+__maybe_unused uint64_t get_time();
+__maybe_unused uint64_t get_time_ms();
+__maybe_unused void set_next_timer();
 
 // syscall.c
 int64_t syscall(uint64_t syscall_id, uint64_t args[]);
@@ -42,7 +34,24 @@ int64_t syscall(uint64_t syscall_id, uint64_t args[]);
 // fs.c
 int64_t sys_write(const uint64_t fd, const char *buf, uint64_t len);
 
-// process.c
-void sys_exit(int64_t code) __attribute__((noreturn));
+// sys_process.c
+__noreturn void sys_exit(int64_t code);
+intptr_t sys_yield();
+intptr_t sys_get_time();
+
+// task.c
+void run_first_task();
+void run_next_task();
+void mark_current_suspended();
+void mark_current_exited();
+void suspend_current_and_run_next();
+void exit_current_and_run_next();
+
+// loader.c
+void load_apps();
+
+// switch.S
+void __switch(TaskContext *old, TaskContext *new);
+
 
 #endif // __DEFS_H_

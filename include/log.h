@@ -50,5 +50,4 @@
              ##__VA_ARGS__);                                                                                           \
         shutdown();                                                                                                    \
     } while (0);
-
 #endif // __LOG_H__

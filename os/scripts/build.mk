@@ -5,12 +5,10 @@ INC_PATH := $(WORK_DIR)/include $(INC_PATH)
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
 BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
-
 LD := gcc
 INCLUDES = $(addprefix -I,$(INC_PATH))
 CFLAGS := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
 LDFLAGS := -O2 $(LDFLAGS)
-
 
 C_OBJS = $(filter %.c, $(SRCS))
 C_OBJS := $(C_OBJS:%.c=$(OBJ_DIR)/%.o)

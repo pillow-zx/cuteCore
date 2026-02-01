@@ -1,17 +1,18 @@
 #include <stdint.h>
 
-#include "defs.h"
+#include "riscv.h"
+#include "utils.h"
 
-static inline void uart_putc(char c) {
+__always_inline void uart_putc(char c) {
     while ((*UART_REG(LSR) & LSR_TX_IDLE) == 0);
     *UART_REG(THR) = c;
 }
 
-static inline void uart_puts(const char *s) {
+__always_inline void uart_puts(const char *s) {
     while (*s) { uart_putc(*s++); }
 }
 
-static inline int32_t uart_getc() {
+__always_inline int32_t uart_getc() {
     while ((*UART_REG(LSR) & LSR_RX_READY) == 0);
     return *UART_REG(RBR);
 }

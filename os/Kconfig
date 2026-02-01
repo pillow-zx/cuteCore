@@ -1,7 +1,7 @@
-mainmenu "cutecore configuration nemu"
+mainmenu "cuteCore configuration nemu"
 
 choice
-    prompt "base isa"
+    prompt "Base Isa"
     default ISA_RISCV
 config ISA_RISCV
     bool "RISC-V"
@@ -15,7 +15,18 @@ config ISA
     default "loongarch64" if ISA_LOONGARCH
     default "none"
 
-menu "build options"
+
+menu "Build Target"
+choice
+    prompt "Platform"
+    default RV_QEMU
+config RV_QEMU
+    depends on ISA_RISCV
+    bool "RISC-V QEMU"
+endchoice
+endmenu
+
+menu "Build Options"
 choice
     prompt "Compiler Type"
     default COMPILER_GCC

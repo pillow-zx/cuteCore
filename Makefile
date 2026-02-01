@@ -9,15 +9,11 @@ remove_quote = $(patsubst "%",%,$(1))
 
 GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
 COMPILER ?= $(call remove_quote,$(CONFIG_COMPILER))
-
+NAME ?= cuteCore-$(GUEST_ISA)
 
 FILELIST_MK = $(shell find -L ./os/src -name "filelist.mk")
 include $(FILELIST_MK)
 
-
 include $(CUTECORE)/os/scripts/config.mk
 
-
 include $(CUTECORE)/os/scripts/native.mk
-
-all: kernel
