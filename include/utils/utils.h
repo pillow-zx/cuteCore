@@ -42,6 +42,11 @@
 #define __aligned_ret(x) __attribute__(assume_aligned(x))
 #define __hot __attribute__((hot))
 
+
+// compiler_builtins.c
+int __clzdi2(unsigned long x);
+int __ctzdi2(unsigned long x);
+
 // tlsf.c
 void tlsf_init(void *mem, size_t size);
 __alloc_size(1) __malloc void *kmalloc(size_t size);

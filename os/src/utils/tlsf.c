@@ -43,6 +43,9 @@ __always_inline void mapping(size_t size, int32_t *fl, int32_t *sl) {
 }
 
 static struct block_header_t *find_suitable_block(struct tlsf_control_t *ctrl, int32_t *fl, int32_t *sl) {
+    if (*fl < 0 || *fl >= L1_COUNT) {
+        return NULL;
+    }
     uint32_t sl_map = ctrl->sf_bitmap[*fl] & (~0U << *sl);
 
     if (sl_map == 0) {
