@@ -1,9 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "defs.h"
+#include "kernel/common.h"
 #include "log.h"
-#include "syscall.h"
+#include "syscall/syscall.h"
 
 int64_t syscall(size_t syscall_id, size_t args[]) {
     int64_t ret = -1;

@@ -1,4 +1,4 @@
-#include "defs.h"
+#include "kernel/common.h"
 #include <stdint.h>
 
 void sys_exit(int64_t code) {
@@ -12,6 +12,4 @@ intptr_t sys_yield() {
     return 0;
 }
 
-intptr_t sys_get_time() {
-    return get_time_ms();
-}
+intptr_t sys_get_time() { return get_time_ms(); }

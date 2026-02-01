@@ -1,7 +1,7 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#include "utils.h"
+#include "utils/utils.h"
 
 #define ANSI_FG_BLACK "\33[1;30m"
 #define ANSI_FG_RED "\33[1;31m"

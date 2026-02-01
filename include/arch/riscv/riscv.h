@@ -11,11 +11,9 @@
 #define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
 
-
-#define SIE_SSIE  (1L << 1)
-#define SIE_STIE  (1L << 5)
-#define SIE_SEIE  (1L << 9)
-
+#define SIE_SSIE (1L << 1)
+#define SIE_STIE (1L << 5)
+#define SIE_SEIE (1L << 9)
 
 #define r_csr(reg)                                                                                                     \
     ({                                                                                                                 \
@@ -26,10 +24,8 @@
 
 #define w_csr(reg, val) ({ asm volatile("csrw " #reg ", %0" ::"r"(val)); })
 
-
 #define intr_on() w_csr(sstatus, r_csr(sstatus) | SSTATUS_SIE)
 #define intr_off() w_csr(sstatus, r_csr(sstatus) & ~SSTATUS_SIE)
-
 
 #define sfence_vma() ({ asm volatile("sfence.vma zero, zero"); })
 
@@ -48,7 +44,6 @@
 #define LSR_TX_IDLE (1 << 5)
 #define LSR_RX_READY (1 << 0)
 #define UART_REG(reg) ((volatile unsigned char *)(UART0 + reg))
-
 
 #endif // CONFIG_RV_QEMU
 

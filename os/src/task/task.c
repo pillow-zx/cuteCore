@@ -1,9 +1,8 @@
 #include <stddef.h>
 
-#include "defs.h"
+#include "kernel/common.h"
 #include "log.h"
-#include "task.h"
-#include "utils.h"
+#include "task/task.h"
 
 __aligned(4096) KernelStack Kernel_Stack[] = (KernelStack[MAX_APP_NUM]){{0}};
 __aligned(4096) UserStack User_Stack[] = (UserStack[MAX_APP_NUM]){{0}};

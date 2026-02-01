@@ -24,7 +24,6 @@
 #define LOG_LEVEL_MAX LOG_LEVEL_NONE
 #endif
 
-
 #define static_assert _Static_assert
 
 #define __always_inline static inline __attribute__((__always_inline__))

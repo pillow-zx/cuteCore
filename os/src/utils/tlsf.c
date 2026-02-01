@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "riscv.h"
-#include "klib.h"
+#include "arch/riscv/riscv.h"
+#include "utils/klib.h"
 
 #define BLOCK_FREE_BIT (1 << 0)
 #define BLOCK_PREV_FREE_BIT (1 << 1)
@@ -258,7 +258,7 @@ void *krealloc(void *ptr, size_t size) {
 }
 
 void kfree(void *ptr) {
-    if (!ptr ||  !global_tlsf_control) { return; }
+    if (!ptr || !global_tlsf_control) { return; }
 
     intr_off();
     kfree_helper(global_tlsf_control, ptr);

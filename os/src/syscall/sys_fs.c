@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "defs.h"
+#include "kernel/common.h"
 #include "log.h"
 
 static const uint64_t STDOUT_FD = 1;

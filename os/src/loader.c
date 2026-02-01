@@ -1,11 +1,8 @@
 #include <stdint.h>
 
-#include "defs.h"
+#include "kernel/common.h"
 #include "log.h"
-#include "task.h"
-#include "klib.h"
-
-
+#include "task/task.h"
 
 void load_apps() {
     extern uint8_t _num_app[];
@@ -26,4 +23,3 @@ void load_apps() {
 
     asm volatile("fence.i");
 }
-

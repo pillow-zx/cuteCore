@@ -1,7 +1,6 @@
+#include "arch/riscv/riscv.h"
+#include "kernel/common.h"
 #include <stdint.h>
-#include "defs.h"
-#include "riscv.h"
-
 
 uint64_t get_time() {
     uint64_t val;
@@ -9,11 +8,6 @@ uint64_t get_time() {
     return val;
 };
 
-uint64_t get_time_ms() {
-    return get_time() / (CLOCK_FREQ / MSEC_PER_SEC);
-}
+uint64_t get_time_ms() { return get_time() / (CLOCK_FREQ / MSEC_PER_SEC); }
 
-void set_next_timer() {
-    w_csr(stimecmp, get_time() + CLOCK_FREQ / TICKS_PRE_SEC);
-}
-
+void set_next_timer() { w_csr(stimecmp, get_time() + CLOCK_FREQ / TICKS_PRE_SEC); }

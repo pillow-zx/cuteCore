@@ -1,17 +1,13 @@
-#ifndef __CONTEXT_H__
-#define __CONTEXT_H__
+#ifndef __ARCH_RISCV_TRAP_H__
+#define __ARCH_RISCV_TRAP_H__
 
+#include "arch/riscv/riscv.h"
+#include "generated/autoconf.h"
+#include "utils/utils.h"
 #include <stdint.h>
 
-#include "generated/autoconf.h"
-
-#ifdef CONFIG_ISA_RISCV
-#include "riscv.h"
-#include "utils.h"
-
-
 enum Interrupt {
-    UserSoft =  (1ULL << 63) | 0,
+    UserSoft = (1ULL << 63) | 0,
     SupervisorSoft = (1ULL << 63) | 1,
     VirtualSupervisorSoft = (1ULL << 63) | 2,
     UserTimer = (1ULL << 63) | 4,
@@ -61,6 +57,13 @@ __always_inline TrapContext app_init_context(uint64_t entry, uint64_t sp) {
     return cx;
 }
 
-#endif // CONFIG_ISA_RISCV
+// trap.c
+void trap_init();
+void trap_enable_timer_interrupt();
 
-#endif // __CONTEXT_H__
+// timer.c
+__maybe_unused uint64_t get_time();
+__maybe_unused uint64_t get_time_ms();
+__maybe_unused void set_next_timer();
+
+#endif // __ARCH_RISCV_TRAP_H__

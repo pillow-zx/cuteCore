@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-#include "riscv.h"
-#include "utils.h"
+#include "arch/riscv/riscv.h"
+#include "utils/utils.h"
 
 __always_inline void uart_putc(char c) {
     while ((*UART_REG(LSR) & LSR_TX_IDLE) == 0);

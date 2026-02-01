@@ -21,8 +21,9 @@ kernel: $(OBJS)
 user:
 	@cd $(CUTECORE)/user && $(MAKE) user
 
-format: $(SRCS)
+fmt: $(SRCS) $(INC_PATH)
 	@$(CLANG_FMT) $(FORMAT_ARG) $(filter %.c, $(SRCS))
+	@$(CLANG_FMT) $(FORMAT_ARG) $(shell find -type f -name "*.h")
 
 qemu:
 	@$(QEMU) $(QEMU_OPTS)

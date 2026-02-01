@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "defs.h"
+#include "kernel/common.h"
 
 static inline int32_t printstr(const char *s) {
     if (!s) { return 0; }

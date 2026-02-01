@@ -1,18 +1,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "defs.h"
-#include "log.h"
-#include "klib.h"
-
+#include "kernel/common.h"
 
 extern char sbss[];
 extern char ebss[];
 
-void clear_bss() {
-    memset(sbss, 0, ebss - sbss);
-}
-
+void clear_bss() { memset(sbss, 0, ebss - sbss); }
 
 void main() {
     clear_bss();

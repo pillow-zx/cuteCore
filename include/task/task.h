@@ -5,9 +5,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "arch/riscv/trap.h"
 #include "config.h"
-#include "trap.h"
-#include "utils.h"
+#include "utils/utils.h"
 
 typedef struct {
     uint8_t data[KERNEL_STACK_SIZE];

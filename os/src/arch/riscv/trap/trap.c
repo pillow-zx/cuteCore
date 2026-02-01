@@ -1,18 +1,16 @@
 #include <stdint.h>
 
-#include "defs.h"
+#include "arch/riscv/riscv.h"
+#include "arch/riscv/trap.h"
+#include "kernel/common.h"
 #include "log.h"
-#include "riscv.h"
-#include "trap.h"
 
 void trap_init(void) {
     extern uintptr_t __alltraps;
     w_csr(stvec, (uintptr_t)&__alltraps);
 }
 
-void trap_enable_timer_interrupt(void) {
-    w_csr(sie, r_csr(sie) | SIE_STIE);
-}
+void trap_enable_timer_interrupt(void) { w_csr(sie, r_csr(sie) | SIE_STIE); }
 
 TrapContext *trap_handler(TrapContext *cx) {
     uint64_t scause = r_csr(scause);
@@ -47,7 +45,8 @@ TrapContext *trap_handler(TrapContext *cx) {
                 break;
             }
             default: {
-                panic("Unhandled trap: scause = %lx, stval = %lx, sepc = %lx, sstatus: %lx", scause, stval, cx->sepc, cx->sstatus);
+                panic("Unhandled trap: scause = %lx, stval = %lx, sepc = %lx, sstatus: %lx", scause, stval, cx->sepc,
+                      cx->sstatus);
             }
         }
     }
