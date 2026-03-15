@@ -1,0 +1,28 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define PGSIZE 4096
+#define PGSHIFT 12
+#define PXMASK 0x1FF
+
+#define KERNBASE 0x80200000UL
+#define PHYSTART 0x80000000UL
+#define PHYEND (PHYSTART + 128 * 1024 * 1024)
+#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+#define MAXPID 32768
+#define RESERVEDPID 300
+#define PIDBITMAP (MAXPID / 8)
+
+#define NCPU 8
+
+#define BLKSZ PGSIZE
+#define NBLKNUM 64
+#define MAXPATHLEN 256
+#define NOFILE 16
+
+#define SIFIVE_TEST_ADDR 0x100000
+#define UART0 0x10000000L
+#define VIRTIO_BLK0 0x10001000L
+
+#endif

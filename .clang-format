@@ -1,0 +1,141 @@
+---
+
+# ========== 基础语言标准 ========
+Language: Cpp
+
+# ========== 缩进 ==========
+# 使用真实 Tab，宽度 8
+UseTab: Always
+TabWidth: 8
+IndentWidth: 8
+ContinuationIndentWidth: 8
+
+# case/goto 标签不额外缩进
+IndentCaseLabels: true
+IndentGotoLabels: false
+
+# 预处理指令不缩进
+IndentPPDirectives: None
+
+# ========== 大括号风格 ==========
+BreakBeforeBraces: Custom
+BraceWrapping:
+  # 函数体左括号换行
+  AfterFunction: true
+  # 控制语句左括号不换行
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterClass: false
+  AfterNamespace: true
+  AfterExternBlock: false
+  AfterObjCDeclaration: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# ========== 行宽 ==========
+ColumnLimit: 80
+
+# ========== 指针对齐 ==========
+# * 靠近变量名：int *ptr
+PointerAlignment: Right
+DerivePointerAlignment: false
+
+# ========== 空格 ==========
+# 关键字后有空格：if (x)，for (x)
+# ForEach 宏除外
+SpaceBeforeParens: ControlStatementsExceptForEachMacros
+
+# 赋值运算符前有空格
+SpaceBeforeAssignmentOperators: true
+
+# 强制类型转换后无空格：(int)x
+SpaceAfterCStyleCast: false
+
+# 括号内无多余空格
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: false
+SpaceInEmptyParentheses: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+
+# 尾行注释前 1 个空格
+SpacesBeforeTrailingComments: 1
+
+# ========== 注释 ==========
+# 不自动对齐尾行注释
+AlignTrailingComments: false
+# 不自动重排注释内容
+ReflowComments: false
+
+# ========== 对齐 ==========
+# 不对齐连续赋值和声明
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+# 操作数对齐
+AlignOperands: true
+# 转义换行符左对齐
+AlignEscapedNewlines: Left
+# 开括号后对齐
+AlignAfterOpenBracket: Align
+
+# ========== 换行与打包 ==========
+BinPackArguments: true
+BinPackParameters: true
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# 不允许短函数/循环/if 写在单行
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+
+# 返回类型不强制换行
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+
+# 二元运算符换行时保留在行尾
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: false
+BreakStringLiterals: false
+
+# ========== 头文件 ==========
+# 保持原有 include 顺序，不自动排序
+SortIncludes: false
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: '.*'
+    Priority: 1
+
+# ========== 空行 ==========
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# ========== 其他 ==========
+# 不自动补充 namespace 结束注释
+FixNamespaceComments: false
+NamespaceIndentation: None
+CompactNamespaces: false
+
+# 断行惩罚参数（影响自动换行决策）
+PenaltyBreakAssignment: 10
+PenaltyBreakBeforeFirstCallParameter: 30
+PenaltyBreakComment: 10
+PenaltyBreakFirstLessLess: 0
+PenaltyBreakString: 10
+PenaltyExcessCharacter: 100
+PenaltyReturnTypeOnItsOwnLine: 60
+
+ForEachMacros:
+  - 'list_for_each'
+  - 'list_for_each_safe'
+
+...

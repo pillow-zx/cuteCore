@@ -1,0 +1,56 @@
+# 根配置文件，停止向上查找
+root = true
+
+# ========== C 源文件 / 头文件 ==========
+[*.{c,h}]
+# 使用真实 Tab 字符，不展开为空格
+indent_style = tab
+# Tab 显示宽度为 8
+indent_size = 8
+tab_width = 8
+# 统一换行符为 LF（Linux 风格）
+end_of_line = lf
+# 文件编码
+charset = utf-8
+# 自动去除行尾空格
+trim_trailing_whitespace = true
+# 文件末尾保留一个空行
+insert_final_newline = true
+
+# ========== 汇编文件 ==========
+[*.{s,S,asm}]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# ========== Makefile ==========
+# Makefile 强制要求 Tab，不能用空格
+[{Makefile,*.mk}]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# ========== 链接脚本 ==========
+[*.ld]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# ========== 配置 / 文档文件 ==========
+[*.{md,txt,rst}]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = false
+insert_final_newline = true
