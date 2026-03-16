@@ -19,5 +19,5 @@
 !mkdisk.sh
 !.clang-format
 !.editorconfig
-!.gdbinit
+!.gdbinit.tmpl
 !.gitignore
