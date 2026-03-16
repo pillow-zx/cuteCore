@@ -1,4 +1,160 @@
+# =============================================================================
+# cuteCore GDB 初始化脚本
+#
+# 用法：
+#   make qemu-gdb          # 终端1：启动 QEMU，冻结 CPU 等待调试器
+#   riscv64-unknown-elf-gdb  # 终端2：启动 GDB，本文件自动加载
+#
+# 自定义命令速查：
+#   tui       — 开启/关闭 TUI（src + asm 双窗口）
+#   reg       — 打印通用寄存器
+#   mtree     — 打印物理地址空间树（经由 QEMU monitor）
+#   memdump   — 按 64-bit hex 转储内存
+#   kmap      — 打印内核各段边界地址
+#   tf        — 打印当前进程 trapframe（trap 后使用）
+# =============================================================================
+
+# ── 目标架构 ─────────────────────────────────────────────────────────────────
+# 强制指定 RISC-V 64-bit，避免 GDB 自动检测出错
 set architecture riscv:rv64
+
+# 允许 GDB 读写任意地址的内存；裸机环境没有 OS 提供内存映射信息，
+# 若不设置此项，GDB 会拒绝访问未显式声明的地址范围
 set mem inaccessible-by-default off
+
+# ── 显示风格 ─────────────────────────────────────────────────────────────────
+# 结构体字段分行显示，嵌套层级缩进
+set print pretty on
+# 数组元素逐行显示并附带下标，方便查看 trapframe / 页表等数组
+set print array on
+set print array-indexes on
+# 反汇编使用 Intel 语法（dst, src 顺序）
+set disassembly-flavor intel
+
+# ── 符号加载 ─────────────────────────────────────────────────────────────────
+# 将 ELF 调试符号映射到内核实际加载地址（KERNBASE = 0x80200000）
+# OpenSBI 占用 0x80000000–0x801fffff，内核从 0x80200000 开始
 add-symbol-file build/kernel.elf 0x80200000
+
+# ── TUI ──────────────────────────────────────────────────────────────────────
+# 切换 TUI 图形界面：上半显示源码，下半显示反汇编，焦点保持在命令行
+# 再次执行 tui 可关闭，回到纯文本模式
+# 窗口焦点切换：focus src / focus asm / focus cmd，或 Ctrl-x o 轮换
+define tui
+  if $tui_on == 1
+    tui disable
+    set $tui_on = 0
+  else
+    tui enable
+    layout split
+    focus cmd
+    set $tui_on = 1
+  end
+end
+document tui
+Toggle TUI mode with split src+asm layout.
+Run again to disable. Use 'focus src/asm/cmd' to switch active window.
+end
+# 记录 TUI 当前开关状态（0 = 关闭）
+set $tui_on = 0
+
+# ── 初始断点 ─────────────────────────────────────────────────────────────────
+# 在内核 C 入口停住；此时 UART 尚未初始化，是观察最早启动状态的时机
+# 若只关心某个子系统，可在此处追加 b <function> 替换或补充
+b kernel_main
+
+# ── 寄存器 ───────────────────────────────────────────────────────────────────
+# reg：打印所有通用寄存器（x0–x31 及 pc）
+# 注意：CSR（sstatus/sepc 等）不在此列，需通过 QEMU monitor 读取
+define reg
+  info registers
+end
+document reg
+Print all general-purpose registers (x0-x31, pc).
+For CSRs use: monitor info registers
+end
+
+# mtree：通过 QEMU monitor 打印完整物理地址空间树
+# 可看到 RAM / OpenSBI / UART(0x10000000) / VirtIO-blk(0x10001000) 等区域
+# 等同于在 QEMU monitor（Ctrl-A C）中执行 info mtree
+define mtree
+  monitor info mtree
+end
+document mtree
+Print the physical memory map tree via QEMU monitor.
+Shows all memory regions: RAM, UART (0x10000000), VirtIO-blk (0x10001000), etc.
+end
+
+# ── 内存工具 ─────────────────────────────────────────────────────────────────
+# memdump ADDR [COUNT]
+# 以 64-bit hex 格式转储从 ADDR 开始的 COUNT 个 8 字节单元（默认 8 个）
+# 示例：
+#   memdump 0x80200000      # 查看内核入口处指令
+#   memdump 0x10000000 4    # 查看 UART MMIO 寄存器
+define memdump
+  if $argc == 1
+    x/8gx $arg0
+  else
+    x/$arg1gx $arg0
+  end
+end
+document memdump
+Usage: memdump ADDR [COUNT]
+Dump COUNT (default 8) 64-bit words starting at ADDR.
+end
+
+# kmap：打印 linker.ld 导出的内核各段边界符号
+# 包括 text / rodata / data / bss 范围及启动栈上下边界
+# 可用于确认内存布局是否符合预期，以及 kinit() 可用内存的起始地址
+define kmap
+  printf "skernel  = 0x%016lx\n", &skernel
+  printf "stext    = 0x%016lx\n", &stext
+  printf "etext    = 0x%016lx\n", &etext
+  printf "srodata  = 0x%016lx\n", &srodata
+  printf "erodata  = 0x%016lx\n", &erodata
+  printf "sdata    = 0x%016lx\n", &sdata
+  printf "edata    = 0x%016lx\n", &edata
+  printf "sbss     = 0x%016lx\n", &sbss
+  printf "ebss     = 0x%016lx\n", &ebss
+  printf "ekernel  = 0x%016lx\n", &ekernel
+  printf "stack lo = 0x%016lx\n", &boot_stack_lower_bound
+  printf "stack hi = 0x%016lx\n", &boot_stack_top
+end
+document kmap
+Print kernel image segment boundaries (exported by linker.ld).
+ekernel marks the start of the free physical memory managed by kinit().
+end
+
+# ── 进程工具 ─────────────────────────────────────────────────────────────────
+# tf：打印当前进程的完整 trapframe
+# 在 usertrap / kerneltrap / panic 触发后调用，可还原 trap 发生时的寄存器现场
+# 包含所有通用寄存器及 sepc / scause / stval
+define tf
+  set $p = curproc()
+  if $p != 0
+    printf "--- trapframe @ 0x%lx ---\n", $p->trapframe
+    printf "ra  = 0x%016lx  sp  = 0x%016lx\n", $p->trapframe->ra,  $p->trapframe->sp
+    printf "gp  = 0x%016lx  tp  = 0x%016lx\n", $p->trapframe->gp,  $p->trapframe->tp
+    printf "a0  = 0x%016lx  a1  = 0x%016lx\n", $p->trapframe->a0,  $p->trapframe->a1
+    printf "a2  = 0x%016lx  a3  = 0x%016lx\n", $p->trapframe->a2,  $p->trapframe->a3
+    printf "a4  = 0x%016lx  a5  = 0x%016lx\n", $p->trapframe->a4,  $p->trapframe->a5
+    printf "a6  = 0x%016lx  a7  = 0x%016lx\n", $p->trapframe->a6,  $p->trapframe->a7
+    printf "t0  = 0x%016lx  t1  = 0x%016lx\n", $p->trapframe->t0,  $p->trapframe->t1
+    printf "t2  = 0x%016lx  t3  = 0x%016lx\n", $p->trapframe->t2,  $p->trapframe->t3
+    printf "t4  = 0x%016lx  t5  = 0x%016lx\n", $p->trapframe->t4,  $p->trapframe->t5
+    printf "t6  = 0x%016lx\n",                  $p->trapframe->t6
+    printf "s0  = 0x%016lx  s1  = 0x%016lx\n", $p->trapframe->s0,  $p->trapframe->s1
+    printf "sepc   = 0x%016lx\n", $p->trapframe->sepc
+    printf "scause = 0x%016lx\n", $p->trapframe->scause
+    printf "stval  = 0x%016lx\n", $p->trapframe->stval
+  else
+    printf "No current process.\n"
+  end
+end
+document tf
+Print the trapframe of the current process (valid after usertrap/kerneltrap).
+end
+
+# ── 连接目标 ─────────────────────────────────────────────────────────────────
+# 端口由 Makefile 按 id -u % 5000 + 25000 计算，sed 替换 :1234 为实际端口
 target remote :1234
