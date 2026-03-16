@@ -1,13 +1,8 @@
 #ifndef LOCK_H
 #define LOCK_H
 
+struct spinlock {};
 
-struct spinlock {
-
-};
-
-struct sleeplock {
-};
-
+struct sleeplock {};
 
 #endif

@@ -1,7 +1,6 @@
 #ifndef LOG_H
 #define LOG_H
 
-
 #include "kernel.h"
 
 #define ANSI_FG_BLACK "\33[1;30m"

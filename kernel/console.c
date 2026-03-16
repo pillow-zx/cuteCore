@@ -67,74 +67,74 @@ static i32 vprintf(const char *fmt, va_list ap)
 		}
 
 		switch (*fmt) {
-		case 'd': {
-			i64 sval = 0;
-			i32 neg = 0;
-			if (longlongflag) {
-				sval = va_arg(ap, long long);
-			} else if (longflag) {
-				sval = va_arg(ap, i64);
-			} else {
-				sval = va_arg(ap, i32);
+			case 'd': {
+				i64 sval = 0;
+				i32 neg = 0;
+				if (longlongflag) {
+					sval = va_arg(ap, long long);
+				} else if (longflag) {
+					sval = va_arg(ap, i64);
+				} else {
+					sval = va_arg(ap, i32);
+				}
+				if (sval < 0) {
+					neg = 1;
+				}
+				cnt += printnum((u64)sval, 10, 1, neg);
+				break;
 			}
-			if (sval < 0) {
-				neg = 1;
+			case 'u': {
+				u64 val;
+				if (longlongflag) {
+					val = va_arg(ap, u64);
+				} else if (longflag) {
+					val = va_arg(ap, u64);
+				} else {
+					val = va_arg(ap, u32);
+				}
+				cnt += printnum(val, 10, 0, 0);
+				break;
 			}
-			cnt += printnum((u64)sval, 10, 1, neg);
-			break;
-		}
-		case 'u': {
-			u64 val;
-			if (longlongflag) {
-				val = va_arg(ap, u64);
-			} else if (longflag) {
-				val = va_arg(ap, u64);
-			} else {
-				val = va_arg(ap, u32);
+			case 'x': {
+				u64 val;
+				if (longlongflag) {
+					val = va_arg(ap, u64);
+				} else if (longflag) {
+					val = va_arg(ap, u64);
+				} else {
+					val = va_arg(ap, u32);
+				}
+				cnt += printnum(val, 16, 0, 0);
+				break;
 			}
-			cnt += printnum(val, 10, 0, 0);
-			break;
-		}
-		case 'x': {
-			u64 val;
-			if (longlongflag) {
-				val = va_arg(ap, u64);
-			} else if (longflag) {
-				val = va_arg(ap, u64);
-			} else {
-				val = va_arg(ap, u32);
+			case 'p': {
+				void *ptr = va_arg(ap, void *);
+				cnt += printstr("0x");
+				cnt += printnum((u64)ptr, 16, 0, 0);
+				break;
 			}
-			cnt += printnum(val, 16, 0, 0);
-			break;
-		}
-		case 'p': {
-			void *ptr = va_arg(ap, void *);
-			cnt += printstr("0x");
-			cnt += printnum((u64)ptr, 16, 0, 0);
-			break;
-		}
-		case 'c': {
-			char c = (char)va_arg(ap, i32);
-			uart_putc(c);
-			cnt++;
-			break;
-		}
-		case 's': {
-			const char *s = va_arg(ap, const char *);
-			cnt += printstr(s);
-			break;
-		}
-		case '%': {
-			uart_putc('%');
-			cnt++;
-			break;
-		}
-		default: {
-			uart_putc('%');
-			uart_putc(*fmt);
-			cnt += 2;
-			break;
-		}
+			case 'c': {
+				char c = (char)va_arg(ap, i32);
+				uart_putc(c);
+				cnt++;
+				break;
+			}
+			case 's': {
+				const char *s = va_arg(ap, const char *);
+				cnt += printstr(s);
+				break;
+			}
+			case '%': {
+				uart_putc('%');
+				cnt++;
+				break;
+			}
+			default: {
+				uart_putc('%');
+				uart_putc(*fmt);
+				cnt += 2;
+				break;
+			}
 		}
 	}
 	return cnt;

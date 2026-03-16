@@ -7,7 +7,8 @@
  *
  * 此函数本次任务中仅需定义，无需进一步实现
  */
-__maybe_unused i32 ext2_file_open(__maybe_unused struct inode *inode, __maybe_unused struct file *file)
+__maybe_unused i32 ext2_file_open(__maybe_unused struct inode *inode,
+				  __maybe_unused struct file *file)
 {
 	/* TODO: 实现文件打开 */
 	return 0;
@@ -18,7 +19,8 @@ __maybe_unused i32 ext2_file_open(__maybe_unused struct inode *inode, __maybe_un
  *
  * 此函数本次任务中仅需定义，无需进一步实现
  */
-__maybe_unused void ext2_file_release(__maybe_unused struct inode *inode, __maybe_unused struct file *file)
+__maybe_unused void ext2_file_release(__maybe_unused struct inode *inode,
+				      __maybe_unused struct file *file)
 {
 	/* TODO: 实现文件关闭 */
 }

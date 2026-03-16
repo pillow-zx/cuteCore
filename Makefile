@@ -85,6 +85,10 @@ kernel: $(K_OBJS) $K/linker.ld
 	$(OBJDUMP) -t $(BUILD)/kernel.elf | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $(BUILD)/kernel.sym
 	@./mkdisk.sh
 
+format:
+	clang-format -i -style=file:./.clang-format ./**/*.h
+	clang-format -i -style=file:./.clang-format ./**/*.c
+
 .PHONY: all clean qemu qemu-gdb
 
 all: kernel
@@ -96,7 +100,10 @@ ifndef CPUS
 CPUS := 1
 endif
 
-QEMUOPTS = -machine virt -kernel $(BUILD)/kernel.elf -m 128M -smp $(CPUS) -serial mon:stdio -nographic -global virtio-mmio.force-legacy=off -drive file=disk.img,format=raw,if=none,id=blk0 -device virtio-blk-device,bus=virtio-mmio-bus.0,drive=blk0
+QEMUOPTS = -machine virt -kernel $(BUILD)/kernel.elf
+QEMUOPTS += -m 128M -smp $(CPUS) -serial mon:stdio -nographic
+QEMUOPTS += -global virtio-mmio.force-legacy=off
+QEMUOPTS += -drive file=disk.img,format=raw,if=none,id=blk0 -device virtio-blk-device,bus=virtio-mmio-bus.0,drive=blk0
 
 qemu: kernel
 	$(QEMU) $(QEMUOPTS)
