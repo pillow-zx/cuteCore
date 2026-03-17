@@ -34,61 +34,86 @@
 
 typedef uint32_t off_t;
 
+/**
+ * @brief VFS inode 类型（复用 POSIX 文件类型位）。
+ *
+ * 该枚举的取值与 `mode & S_IFMT` 的类型位一致，便于与 `S_ISREG/S_ISDIR`
+ * 等宏配合使用。
+ */
 enum inode_t : u32 {
 	INODE_FILE = S_IFREG,
 	INODE_DIR = S_IFDIR,
 	INODE_SYNLINK = S_IFLNK,
 };
 
+/**
+ * @brief VFS inode（文件系统对象的元数据抽象）。
+ *
+ * `inode` 描述“文件/目录本身”，可被多个 `struct file`（打开实例）共享。
+ * 具体文件系统可以通过 `fs_private` 绑定其私有表示（如 ext2 inode 缓存）。
+ */
 struct inode {
-	u32 ino;
-	enum inode_t type;
-	u32 mode;
-	u32 uid;
-	u32 gid;
-	u32 size;
-	u32 nlinks;
+	u32 ino; /**< inode 号（文件系统内唯一标识）。 */
+	enum inode_t type; /**< 对象类型（文件/目录/符号链接）。 */
+	u32 mode; /**< 权限与类型位（类似 POSIX `st_mode`）。 */
+	u32 uid; /**< 属主用户 ID。 */
+	u32 gid; /**< 属主组 ID。 */
+	u32 size; /**< 文件大小（字节）。 */
+	u32 nlinks; /**< 硬链接计数（目录项引用数）。 */
 
-	i32 ref;
-	bool dirty;
-	bool valid;
+	i32 ref; /**< 内存引用计数（持有该 inode 的引用数）。 */
+	bool dirty; /**< 元数据被修改，需要回写到底层文件系统。 */
+	bool valid; /**< 元数据是否已从底层文件系统加载完成。 */
 
-	struct sleeplock lock;
+	struct sleeplock
+		lock; /**< 保护该 inode 的睡眠锁（可能在 I/O 路径持有）。 */
 
-	struct vfs *fs;
-	struct inode_ops *iops;
-	struct file_ops *fops;
+	struct vfs *fs; /**< 所属 VFS 实例（挂载的文件系统）。 */
+	struct inode_ops *iops; /**< inode 操作表（由具体文件系统提供）。 */
+	struct file_ops *fops; /**< 默认 file 操作表（由具体文件系统提供）。 */
 
-	void *fs_private;
+	void *fs_private; /**< 具体文件系统的私有数据指针。 */
 
-	struct list_head cache_link;
+	struct list_head
+		cache_link; /**< inode 缓存链表节点（挂到 `vfs::inode_cache`）。 */
 
-	u32 dev;
+	u32 dev; /**< 底层设备号（区分不同设备上的 inode）。 */
 };
 
+/**
+ * @brief 打开文件对象（一次 open 的运行时状态）。
+ *
+ * `file` 关联到一个 `inode`，保存本次打开的 flags 与当前偏移；同一 inode
+ * 可以对应多个 `file` 实例（多次打开或 dup）。
+ */
 struct file {
-	i32 ref;
-	i32 flags;
-	off_t offset;
+	i32 ref; /**< 打开文件对象引用计数。 */
+	i32 flags; /**< 打开标志（如 `O_RDONLY/O_WRONLY/O_RDWR/...`）。 */
+	off_t offset; /**< 当前读写偏移（每个打开实例独立）。 */
 
-	struct inode *inode;
-	struct file_ops *ops;
+	struct inode *inode; /**< 关联的 inode。 */
+	struct file_ops *ops; /**< 文件操作表（read/write/release 等）。 */
 };
 
+/**
+ * @brief VFS 实例（一次挂载的文件系统）。
+ *
+ * 保存该文件系统的全局参数、根目录 inode、操作表以及 inode 缓存等信息。
+ */
 struct vfs {
-	u32 block_size;
-	u32 blocks_count;
+	u32 block_size; /**< 文件系统块大小（字节）。 */
+	u32 blocks_count; /**< 文件系统总块数。 */
 
-	struct inode *root;
-	struct inode_ops *inode_ops;
-	struct file_ops *file_ops;
+	struct inode *root; /**< 根目录 inode（该挂载点的根）。 */
+	struct inode_ops *inode_ops; /**< 默认 inode 操作表。 */
+	struct file_ops *file_ops; /**< 默认 file 操作表。 */
 
-	void *fs_private;
+	void *fs_private; /**< 具体文件系统实例私有数据（如 superblock）。 */
 
-	struct list_head inode_cache;
-	u32 icache_size;
+	struct list_head inode_cache; /**< inode 缓存链表头。 */
+	u32 icache_size; /**< inode 缓存大小/计数（用于回收/限制）。 */
 
-	u32 dev;
+	u32 dev; /**< 底层设备号（该挂载实例对应的设备）。 */
 };
 
 struct inode_ops {

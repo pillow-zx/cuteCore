@@ -1,6 +1,25 @@
+/**
+ * @file ialloc.c
+ * @brief Ext2 文件系统 inode 分配与释放
+ *
+ * 本文件实现了 Ext2 文件系统的 inode 分配器，负责管理 inode 的分配和释放操作。
+ * inode 分配器通过操作 inode 位图来跟踪每个块组中空闲 inode 的使用状态。
+ */
+
 #include "ext2.h"
 #include "fs.h"
 
+/**
+ * @brief 分配一个新的 inode
+ *
+ * 遍历所有块组，在 inode 位图中查找第一个空闲 inode 并标记为已使用。
+ * 分配成功后会更新块组描述符和超级块中的空闲 inode 计数。
+ *
+ * @return 成功返回分配的 inode 号（从 1 开始）；失败返回 0
+ *
+ * @note inode 号从 1 开始，返回值需直接用于 ext2_iget 等函数
+ * @note 分配策略：从第一个块组开始顺序查找，找到第一个空闲 inode 即返回
+ */
 u32 ext2_alloc_inode(void)
 {
 	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
@@ -71,6 +90,16 @@ u32 ext2_alloc_inode(void)
 	return 0;
 }
 
+/**
+ * @brief 释放一个已分配的 inode
+ *
+ * 根据 inode 号计算其所在的块组和位图位置，清除位图中对应的占用标志。
+ * 释放成功后会更新块组描述符和超级块中的空闲 inode 计数。
+ *
+ * @param ino 要释放的 inode 号
+ *
+ * @note 无效 inode 号（0 或超出范围）将被忽略
+ */
 void ext2_free_inode(u32 ino)
 {
 	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;

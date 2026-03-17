@@ -1,11 +1,28 @@
+/**
+ * @file dir.c
+ * @brief Ext2 文件系统目录操作与文件读写
+ *
+ * 本文件实现了 Ext2 文件系统的目录操作和文件读写功能，包括：
+ * - 文件的打开、关闭、读取、写入
+ * - 目录项的查找、创建、删除
+ * - 目录的创建（mkdir）
+ */
+
 #include "fs.h"
 #include "ext2.h"
 #include "utils.h"
 
-/*
- * ext2_file_open - 打开文件
+/**
+ * @brief 打开文件
  *
- * 此函数本次任务中仅需定义，无需进一步实现
+ * 当前为占位实现，预留扩展接口。
+ *
+ * @param inode 文件对应的 inode
+ * @param file  文件结构体指针
+ *
+ * @return 成功返回 0
+ *
+ * @note 此函数当前任务中仅需定义，无需进一步实现
  */
 __maybe_unused i32 ext2_file_open(__maybe_unused struct inode *inode,
 				  __maybe_unused struct file *file)
@@ -14,10 +31,15 @@ __maybe_unused i32 ext2_file_open(__maybe_unused struct inode *inode,
 	return 0;
 }
 
-/*
- * ext2_file_release - 关闭文件
+/**
+ * @brief 关闭文件
  *
- * 此函数本次任务中仅需定义，无需进一步实现
+ * 当前为占位实现，预留扩展接口。
+ *
+ * @param inode 文件对应的 inode
+ * @param file  文件结构体指针
+ *
+ * @note 此函数当前任务中仅需定义，无需进一步实现
  */
 __maybe_unused void ext2_file_release(__maybe_unused struct inode *inode,
 				      __maybe_unused struct file *file)
@@ -25,14 +47,20 @@ __maybe_unused void ext2_file_release(__maybe_unused struct inode *inode,
 	/* TODO: 实现文件关闭 */
 }
 
-/*
- * ext2_read_block - 读取 inode 的指定逻辑块
+/**
+ * @brief 读取 inode 的指定逻辑块
  *
- * @inode: 目标 inode
- * @lbk: 逻辑块号
- * @buf: 输出缓冲区 (至少 block_size 字节)
+ * 根据逻辑块号计算其在直接块、一级间接块或二级间接块中的位置，
+ * 并读取对应的数据块内容到缓冲区。
  *
- * 返回: 0 成功，负数失败
+ * @param inode 目标 inode
+ * @param lbk   逻辑块号（相对于文件起始）
+ * @param buf   输出缓冲区（至少 fs.block_size 字节）
+ *
+ * @return 成功返回 0；失败返回 -1
+ *
+ * @note 对于稀疏文件的未分配块，返回零填充的缓冲区
+ * @note 三级间接块暂不支持，将返回 -1
  */
 static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
 {
@@ -132,15 +160,20 @@ static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
 	return -1;
 }
 
-/*
- * ext2_file_read - 读取文件内容
+/**
+ * @brief 读取文件内容
  *
- * @file: 文件结构
- * @buf: 用户缓冲区
- * @len: 读取长度
- * @offset: 文件偏移量指针（会被更新）
+ * 从文件指定偏移量读取数据到用户缓冲区。处理跨块读取，
+ * 自动截断超出文件大小的读取请求。
  *
- * 返回: 实际读取的字节数，负数表示错误
+ * @param file   文件结构体指针
+ * @param buf    用户缓冲区
+ * @param len    请求读取的字节数
+ * @param offset 文件偏移量指针（读取后会更新）
+ *
+ * @return 成功返回实际读取的字节数；失败返回负值
+ *
+ * @note 若偏移量已超过文件末尾，返回 0
  */
 i32 ext2_file_read(struct file *file, void *buf, usize len, off_t *offset)
 {
@@ -184,20 +217,20 @@ i32 ext2_file_read(struct file *file, void *buf, usize len, off_t *offset)
 	return (i32)total;
 }
 
-/*
- * ext2_write_block - 将数据写入 inode 的指定逻辑块
- *
- * @inode: 目标 inode
- * @lbk:   逻辑块号（相对于文件起始）
- * @buf:   源缓冲区（fs.block_size 字节）
+/**
+ * @brief 将数据写入 inode 的指定逻辑块
  *
  * 若该逻辑块尚未分配（稀疏或文件末尾），则自动分配新块并在
  * 间接索引链中记录。间接块本身（一级/二级）若也未分配则同样
  * 由本函数分配并清零。
  *
- * 返回: 0 成功，-1 失败
+ * @param inode 目标 inode
+ * @param lbk   逻辑块号（相对于文件起始）
+ * @param buf   源缓冲区（fs.block_size 字节）
  *
- * 实现范围：直接块、一级间接、二级间接。三级间接不支持（返回 -1）。
+ * @return 成功返回 0；失败返回 -1
+ *
+ * @note 实现范围：直接块、一级间接、二级间接。三级间接不支持。
  */
 static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 {
@@ -346,19 +379,21 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 	return -1;
 }
 
-/*
- * ext2_file_write - 写入文件内容
+/**
+ * @brief 写入文件内容
  *
- * @file:   文件结构
- * @buf:    用户缓冲区（源数据）
- * @len:    写入字节数
- * @offset: 文件偏移量指针（写入完成后被更新）
+ * 对于每个跨越的逻辑块，采用读-改-写策略：
+ * 先读出原有数据，将用户数据覆盖到对应区域，再写回整块。
+ * 若写入超过文件末尾则自动扩展 inode->size。
  *
- * 对于每个跨越的逻辑块，先读出原有数据（read-modify-write），
- * 将用户数据覆盖到对应区域，再写回。若写入超过文件末尾则自动
- * 扩展 inode->size，并在完成后调用 ext2_write_inode 写回 inode。
+ * @param file   文件结构体指针
+ * @param buf    用户缓冲区（源数据）
+ * @param len    请求写入的字节数
+ * @param offset 文件偏移量指针（写入后会更新）
  *
- * 返回: 实际写入字节数，负数表示错误
+ * @return 成功返回实际写入的字节数；失败返回负值
+ *
+ * @note 写入完成后会自动更新 inode 元数据到磁盘
  */
 i32 ext2_file_write(struct file *file, const void *buf, usize len,
 		    off_t *offset)
@@ -416,16 +451,19 @@ i32 ext2_file_write(struct file *file, const void *buf, usize len,
 	return (i32)total;
 }
 
-/*
- * ext2_lookup - 在目录中查找指定名称的文件
- *
- * @dir:     目录 inode
- * @name:    要查找的文件名
- * @namelen: 文件名长度
+/**
+ * @brief 在目录中查找指定名称的文件
  *
  * 遍历目录的所有数据块，逐条解析 ext2_dir_entry，比较文件名。
+ * 找到后通过 ext2_iget 加载对应 inode。
  *
- * 返回: 找到则返回对应 inode（引用计数已增），否则返回 nullptr
+ * @param dir     目录 inode
+ * @param name    要查找的文件名
+ * @param namelen 文件名长度
+ *
+ * @return 找到则返回对应 inode（引用计数已增）；未找到返回 nullptr
+ *
+ * @note 非目录类型的 inode 将直接返回 nullptr
  */
 struct inode *ext2_lookup(struct inode *dir, const char *name, i32 namelen)
 {
@@ -462,19 +500,21 @@ struct inode *ext2_lookup(struct inode *dir, const char *name, i32 namelen)
 	return nullptr;
 }
 
-/*
- * ext2_dir_add_entry - 向目录追加一条目录项
+/**
+ * @brief 向目录追加一条目录项
  *
  * 在目录已有数据块中寻找可以容纳新条目的空间（利用末尾条目的
  * rec_len 填充区）；若没有空间则分配一个新的数据块。
  *
- * @dir:     目录 inode
- * @name:    文件名
- * @namelen: 文件名长度
- * @ino:     新条目的 inode 编号
- * @ftype:   文件类型（1=普通文件，2=目录）
+ * @param dir     目录 inode
+ * @param name    文件名
+ * @param namelen 文件名长度
+ * @param ino     新条目的 inode 编号
+ * @param ftype   文件类型（1=普通文件，2=目录）
  *
- * 返回: 0 成功，-1 失败
+ * @return 成功返回 0；失败返回 -1
+ *
+ * @note 若分配了新数据块，会自动更新目录的 size
  */
 static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
 			      u32 ino, u8 ftype)
@@ -553,21 +593,21 @@ static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
 	return 0;
 }
 
-/*
- * ext2_create - 在目录中创建一个新的普通文件
+/**
+ * @brief 在目录中创建一个新的普通文件
  *
- * @dir:     父目录 inode
- * @name:    新文件名
- * @namelen: 文件名长度
- * @mode:    文件权限位（将自动附加 S_IFREG）
+ * 创建流程：
+ * 1. 分配一个新的 inode 编号
+ * 2. 初始化磁盘上的 struct ext2_inode（清零，填写 mode/links）
+ * 3. 在父目录中追加目录项
+ * 4. 调用 ext2_iget 加载并返回新 inode
  *
- * 步骤：
- *   1. 分配一个新的 inode 编号
- *   2. 初始化磁盘上的 struct ext2_inode（清零，填写 mode/links）
- *   3. 在父目录中追加目录项
- *   4. 调用 ext2_iget 加载并返回新 inode
+ * @param dir     父目录 inode
+ * @param name    新文件名
+ * @param namelen 文件名长度
+ * @param mode    文件权限位（将自动附加 S_IFREG）
  *
- * 返回: 成功返回新 inode，失败返回 nullptr
+ * @return 成功返回新创建文件的 inode；失败返回 nullptr
  */
 struct inode *ext2_create(struct inode *dir, const char *name, i32 namelen,
 			  u32 mode)
@@ -612,22 +652,22 @@ struct inode *ext2_create(struct inode *dir, const char *name, i32 namelen,
 	return ext2_iget(ino);
 }
 
-/*
- * ext2_mkdir - 在目录中创建一个新的子目录
+/**
+ * @brief 在目录中创建一个新的子目录
  *
- * @dir:     父目录 inode
- * @name:    新目录名
- * @namelen: 目录名长度
- * @mode:    权限位（自动附加 S_IFDIR）
+ * 创建流程：
+ * 1. 分配新 inode（类型 S_IFDIR，i_links_count=2）
+ * 2. 分配一个数据块，写入 "." 和 ".." 两条目录项
+ * 3. 在父目录中添加目录项（file_type=2）
+ * 4. 递增父目录 nlinks（因为 ".." 指向父目录）
+ * 5. 更新块组描述符的 bg_used_dirs_count
  *
- * 步骤：
- *   1. 分配新 inode（类型 S_IFDIR，i_links_count=2：自身 "." 和父目录项）
- *   2. 分配一个数据块，写入 "." 和 ".." 两条目录项
- *   3. 在父目录中添加目录项（file_type=2）
- *   4. 递增父目录 nlinks（因为 ".." 指向父目录）并写回父 inode
- *   5. 更新块组描述符的 bg_used_dirs_count
+ * @param dir     父目录 inode
+ * @param name    新目录名
+ * @param namelen 目录名长度
+ * @param mode    权限位（自动附加 S_IFDIR）
  *
- * 返回: 成功返回新目录 inode，失败返回 nullptr
+ * @return 成功返回新目录的 inode；失败返回 nullptr
  */
 struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 			 u32 mode)
@@ -744,22 +784,22 @@ struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 	return ext2_iget(ino);
 }
 
-/*
- * ext2_unlink - 从目录中删除一条目录项（减少硬链接计数）
+/**
+ * @brief 从目录中删除一条目录项
  *
- * @dir:     父目录 inode
- * @name:    要删除的文件名
- * @namelen: 文件名长度
+ * 删除流程：
+ * 1. 遍历目录数据块，找到匹配的目录项
+ * 2. 将该条目的 inode 字段置 0，并将其空间合并到前一条目的 rec_len
+ * 3. 写回修改后的目录块
+ * 4. 递减目标 inode 的硬链接计数，若降为 0 则释放磁盘空间
  *
- * 步骤：
- *   1. 遍历目录数据块，找到匹配的目录项
- *   2. 将该条目的 inode 字段置 0（标记为已删除），并将其空间
- *      合并到前一条目的 rec_len 中（或若为块首条目则直接清零）
- *   3. 写回修改后的目录块
- *   4. 通过 ext2_iget 加载目标 inode，递减 nlinks 并写回；
- *      若 nlinks 降为 0，iput 会调用 ext2_truncate_inode 释放块
+ * @param dir     父目录 inode
+ * @param name    要删除的文件名
+ * @param namelen 文件名长度
  *
- * 返回: 0 成功，-1 失败（未找到）
+ * @return 成功返回 0；失败返回 -1（未找到）
+ *
+ * @note 此函数仅删除目录项，实际的 inode 和数据块释放由 iput 处理
  */
 i32 ext2_unlink(struct inode *dir, const char *name, i32 namelen)
 {
@@ -824,8 +864,10 @@ i32 ext2_unlink(struct inode *dir, const char *name, i32 namelen)
 	return -1; /* 未找到 */
 }
 
-/*
- * ext2 文件操作表
+/**
+ * @brief Ext2 文件操作表
+ *
+ * 注册到 VFS 层的文件操作接口实现。
  */
 struct file_ops ext2_file_ops = {
 	.open = ext2_file_open,

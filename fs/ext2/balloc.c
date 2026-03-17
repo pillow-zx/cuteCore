@@ -1,17 +1,40 @@
+/**
+ * @file balloc.c
+ * @brief Ext2 文件系统块分配与释放
+ *
+ * 本文件实现了 Ext2 文件系统的块分配器，负责管理磁盘块的分配和释放操作。
+ * 块分配器通过操作块位图(bitmap)来跟踪每个块组中空闲块的使用状态。
+ */
+
 #include "ext2.h"
 #include "fs.h"
 
+/**
+ * @brief 分配一个新的块
+ *
+ * 遍历所有块组，在块位图中查找第一个空闲块并标记为已使用。
+ * 分配成功后会更新块组描述符和超级块中的空闲块计数。
+ *
+ * @return 成功返回分配的物理块号；失败返回 0
+ *
+ * @note 块号从 s_first_data_block 开始，即第一个数据块
+ * @note 分配策略：从第一个块组开始顺序查找，找到第一个空闲块即返回
+ */
 u32 ext2_alloc_block(void)
 {
 	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
 	struct ext2_super_block *raw_sb = sbi->raw_sb;
 
+	// 遍历所有块组
 	for (u32 g = 0; g < sbi->group_count; g++) {
+		// 获得对应块组的块组描述符表
 		struct ext2_bg_desc *gdesc = &sbi->gb_table[g];
 
+		// 检查当前块组是否存在空闲块
 		if (gdesc->bg_free_blocks_count == 0)
 			continue;
 
+		// 读取块组描述符表
 		struct blk_cache *bmap = bread(gdesc->bg_block_bitmap);
 		if (bmap == nullptr)
 			return 0;
@@ -73,6 +96,17 @@ u32 ext2_alloc_block(void)
 	return 0;
 }
 
+/**
+ * @brief 释放一个已分配的块
+ *
+ * 根据块号计算其所在的块组和位图位置，清除位图中对应的占用标志。
+ * 释放成功后会更新块组描述符和超级块中的空闲块计数。
+ *
+ * @param blk_no 要释放的物理块号
+ *
+ * @note 无效块号（0 或小于 s_first_data_block）将被忽略
+ * @note 超出文件系统范围的块号将被忽略
+ */
 void ext2_free_block(u32 blk_no)
 {
 	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
