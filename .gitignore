@@ -7,6 +7,7 @@
 !lib/
 !fs/
 !mm/
+!.vscode/
 !include/**
 !driver/**
 !kernel/**
@@ -15,6 +16,7 @@
 !lib/**
 !fs/**
 !mm/**
+!.vscode/**
 !Makefile
 !mkdisk.sh
 !.clang-format

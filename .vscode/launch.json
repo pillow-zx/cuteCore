@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Kernel (Attach to QEMU)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/kernel.elf",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "miDebuggerServerAddress": "localhost:26000",
+      "setupCommands": [
+        {
+          "description": "Set architecture to RISC-V 64-bit",
+          "text": "set architecture riscv:rv64",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Allow memory access in bare-metal",
+          "text": "set mem inaccessible-by-default off",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Load kernel symbols at KERNBASE",
+          "text": "add-symbol-file ${workspaceFolder}/build/kernel.elf 0x80200000",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Enable pretty printing",
+          "text": "set print pretty on",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Enable array printing with indexes",
+          "text": "set print array on",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Set disassembly flavor to Intel",
+          "text": "set disassembly-flavor intel",
+          "ignoreFailures": false
+        }
+      ]
+    }
+  ]
+}
