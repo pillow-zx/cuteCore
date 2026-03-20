@@ -8,8 +8,8 @@
  * - 目录的创建（mkdir）
  */
 
+#include "ext2/ext2.h"
 #include "fs.h"
-#include "ext2.h"
 #include "utils.h"
 
 /**
@@ -62,14 +62,13 @@ __maybe_unused void ext2_file_release(__maybe_unused struct inode *inode,
  * @note 对于稀疏文件的未分配块，返回零填充的缓冲区
  * @note 三级间接块暂不支持，将返回 -1
  */
-static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
+static i32 ext2_read_block(const struct inode *inode, u32 lbk, char *buf)
 {
-	struct ext2_inode_info *info =
-		(struct ext2_inode_info *)inode->fs_private;
+	const auto info = (struct ext2_inode_info *)inode->fs_private;
 
 	/* 直接块 */
 	if (lbk < EXT2_NDIR_BLOCKS) {
-		u32 blk_no = info->i_block[lbk];
+		const u32 blk_no = info->i_block[lbk];
 		if (blk_no == 0) {
 			/* 稀疏文件，返回零填充 */
 			memset(buf, 0, fs.block_size);
@@ -86,7 +85,7 @@ static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
 	/* 一级间接块 */
 	lbk -= EXT2_NDIR_BLOCKS;
 	if (lbk < fs.block_size / 4) {
-		u32 ind_blk = info->i_block[EXT2_IND_BLOCK];
+		const u32 ind_blk = info->i_block[EXT2_IND_BLOCK];
 		if (ind_blk == 0) {
 			memset(buf, 0, fs.block_size);
 			return 0;
@@ -113,7 +112,7 @@ static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
 
 	/* 二级间接块 */
 	lbk -= fs.block_size / 4;
-	u32 ptrs_per_blk = fs.block_size / 4;
+	const u32 ptrs_per_blk = fs.block_size / 4;
 	if (lbk < ptrs_per_blk * ptrs_per_blk) {
 		u32 dind_blk = info->i_block[EXT2_DIND_BLOCK];
 		if (dind_blk == 0) {
@@ -121,7 +120,7 @@ static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
 			return 0;
 		}
 
-		u32 ind_idx = lbk / ptrs_per_blk;
+		const u32 ind_idx = lbk / ptrs_per_blk;
 		u32 dblk_idx = lbk % ptrs_per_blk;
 
 		struct blk_cache *dind_cache = bread(dind_blk);
@@ -140,7 +139,7 @@ static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
 		if (ind_cache == nullptr)
 			return -1;
 
-		u32 blk_no = ((u32 *)ind_cache->data)[dblk_idx];
+		const u32 blk_no = ((u32 *)ind_cache->data)[dblk_idx];
 		brelse(ind_cache);
 
 		if (blk_no == 0) {
@@ -175,9 +174,9 @@ static i32 ext2_read_block(struct inode *inode, u32 lbk, char *buf)
  *
  * @note 若偏移量已超过文件末尾，返回 0
  */
-i32 ext2_file_read(struct file *file, void *buf, usize len, off_t *offset)
+i32 ext2_file_read(const struct file *file, void *buf, usize len, off_t *offset)
 {
-	struct inode *inode = file->inode;
+	const struct inode *inode = file->inode;
 
 	/* 确保运行时块大小不超过编译时常量 */
 	if (fs.block_size > BLKSZ)
@@ -234,8 +233,7 @@ i32 ext2_file_read(struct file *file, void *buf, usize len, off_t *offset)
  */
 static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 {
-	struct ext2_inode_info *info =
-		(struct ext2_inode_info *)inode->fs_private;
+	const auto info = (struct ext2_inode_info *)inode->fs_private;
 
 	/* ── 直接块 (lbk < 12) ─────────────────────────────────────── */
 	if (lbk < EXT2_NDIR_BLOCKS) {
@@ -255,14 +253,14 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 		return 0;
 	}
 
-	u32 ptrs_per_blk = fs.block_size / 4;
+	const u32 ptrs_per_blk = fs.block_size / 4;
 
 	/* ── 一级间接块 ─────────────────────────────────────────────── */
 	lbk -= EXT2_NDIR_BLOCKS;
 	if (lbk < ptrs_per_blk) {
 		/* 如果间接块本身不存在，先分配并清零 */
 		if (info->i_block[EXT2_IND_BLOCK] == 0) {
-			u32 nb = ext2_alloc_block();
+			const u32 nb = ext2_alloc_block();
 			if (nb == 0)
 				return -1;
 			info->i_block[EXT2_IND_BLOCK] = nb;
@@ -280,9 +278,9 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 		if (ind == nullptr)
 			return -1;
 
-		u32 *ptrs = (u32 *)ind->data;
+		const auto ptrs = (u32 *)ind->data;
 		if (ptrs[lbk] == 0) {
-			u32 nb = ext2_alloc_block();
+			const u32 nb = ext2_alloc_block();
 			if (nb == 0) {
 				brelse(ind);
 				return -1;
@@ -290,7 +288,7 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 			ptrs[lbk] = nb;
 			bwrite(ind);
 		}
-		u32 data_blk = ptrs[lbk];
+		const u32 data_blk = ptrs[lbk];
 		brelse(ind);
 
 		struct blk_cache *c = bread(data_blk);
@@ -307,7 +305,7 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 	if (lbk < ptrs_per_blk * ptrs_per_blk) {
 		/* 分配二级间接块（若不存在） */
 		if (info->i_block[EXT2_DIND_BLOCK] == 0) {
-			u32 nb = ext2_alloc_block();
+			const u32 nb = ext2_alloc_block();
 			if (nb == 0)
 				return -1;
 			info->i_block[EXT2_DIND_BLOCK] = nb;
@@ -320,17 +318,17 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 			brelse(dc);
 		}
 
-		u32 ind_idx = lbk / ptrs_per_blk;
+		const u32 ind_idx = lbk / ptrs_per_blk;
 		u32 dblk_idx = lbk % ptrs_per_blk;
 
 		struct blk_cache *dind = bread(info->i_block[EXT2_DIND_BLOCK]);
 		if (dind == nullptr)
 			return -1;
-		u32 *dptrs = (u32 *)dind->data;
+		auto dptrs = (u32 *)dind->data;
 
 		/* 分配一级间接块（若不存在） */
 		if (dptrs[ind_idx] == 0) {
-			u32 nb = ext2_alloc_block();
+			const u32 nb = ext2_alloc_block();
 			if (nb == 0) {
 				brelse(dind);
 				return -1;
@@ -346,16 +344,16 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 			bwrite(ic);
 			brelse(ic);
 		}
-		u32 ind_blk = dptrs[ind_idx];
+		const u32 ind_blk = dptrs[ind_idx];
 		brelse(dind);
 
 		struct blk_cache *ind = bread(ind_blk);
 		if (ind == nullptr)
 			return -1;
-		u32 *iptrs = (u32 *)ind->data;
+		auto iptrs = (u32 *)ind->data;
 
 		if (iptrs[dblk_idx] == 0) {
-			u32 nb = ext2_alloc_block();
+			const u32 nb = ext2_alloc_block();
 			if (nb == 0) {
 				brelse(ind);
 				return -1;
@@ -363,7 +361,7 @@ static i32 ext2_write_block(struct inode *inode, u32 lbk, const char *buf)
 			iptrs[dblk_idx] = nb;
 			bwrite(ind);
 		}
-		u32 data_blk = iptrs[dblk_idx];
+		const u32 data_blk = iptrs[dblk_idx];
 		brelse(ind);
 
 		struct blk_cache *c = bread(data_blk);
@@ -409,8 +407,8 @@ i32 ext2_file_write(struct file *file, const void *buf, usize len,
 	char block_buf[BLKSZ];
 
 	while (total < len) {
-		u32 lbk = (*offset) / fs.block_size;
-		u32 blk_off = (*offset) % fs.block_size;
+		const u32 lbk = *offset / fs.block_size;
+		const u32 blk_off = *offset % fs.block_size;
 
 		/*
 		 * 读-改-写：先读出已有数据（可能是全零的新块），
@@ -440,7 +438,7 @@ i32 ext2_file_write(struct file *file, const void *buf, usize len,
 
 	/* 如果写入超过了原文件末尾，更新 inode 大小 */
 	if (*offset > inode->size) {
-		inode->size = (u32)*offset;
+		inode->size = *offset;
 		inode->dirty = true;
 	}
 
@@ -465,14 +463,15 @@ i32 ext2_file_write(struct file *file, const void *buf, usize len,
  *
  * @note 非目录类型的 inode 将直接返回 nullptr
  */
-struct inode *ext2_lookup(struct inode *dir, const char *name, i32 namelen)
+struct inode *ext2_lookup(const struct inode *dir, const char *name,
+			  const i32 namelen)
 {
 	if (dir == nullptr || dir->type != INODE_DIR)
 		return nullptr;
 	if (name == nullptr || namelen <= 0)
 		return nullptr;
 
-	u32 block_size = fs.block_size;
+	const u32 block_size = fs.block_size;
 	u32 nblocks = (dir->size + block_size - 1) / block_size;
 	char block_buf[BLKSZ];
 
@@ -482,7 +481,7 @@ struct inode *ext2_lookup(struct inode *dir, const char *name, i32 namelen)
 
 		u32 pos = 0;
 		while (pos + sizeof(struct ext2_dir_entry) <= block_size) {
-			struct ext2_dir_entry *de =
+			const auto de =
 				(struct ext2_dir_entry *)(block_buf + pos);
 
 			if (de->rec_len == 0)
@@ -516,13 +515,13 @@ struct inode *ext2_lookup(struct inode *dir, const char *name, i32 namelen)
  *
  * @note 若分配了新数据块，会自动更新目录的 size
  */
-static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
-			      u32 ino, u8 ftype)
+static i32 ext2_dir_add_entry(struct inode *dir, const char *name,
+			      const u32 namelen, const u32 ino, u8 ftype)
 {
-	u32 block_size = fs.block_size;
+	const u32 block_size = fs.block_size;
 	/* 新条目所需的最小 rec_len（名称后按 4 字节对齐） */
 	u32 needed = (u32)(sizeof(struct ext2_dir_entry) + namelen);
-	needed = (needed + 3) & ~3u;
+	needed = needed + 3 & ~3u;
 
 	u32 nblocks = (dir->size + block_size - 1) / block_size;
 	char block_buf[BLKSZ];
@@ -533,7 +532,7 @@ static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
 
 		u32 pos = 0;
 		while (pos + sizeof(struct ext2_dir_entry) <= block_size) {
-			struct ext2_dir_entry *de =
+			const auto de =
 				(struct ext2_dir_entry *)(block_buf + pos);
 
 			if (de->rec_len == 0)
@@ -542,8 +541,8 @@ static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
 			/* 计算该条目实际占用的最小空间 */
 			u32 actual = (u32)(sizeof(struct ext2_dir_entry) +
 					   de->name_len);
-			actual = (actual + 3) & ~3u;
-			u32 slack = de->rec_len - actual;
+			actual = actual + 3 & ~3u;
+			const u32 slack = de->rec_len - actual;
 
 			if (slack >= needed) {
 				/*
@@ -554,11 +553,11 @@ static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
 				 */
 				de->rec_len = (u16)actual;
 
-				struct ext2_dir_entry *ne =
+				const auto ne =
 					(struct ext2_dir_entry *)(block_buf +
 								  pos + actual);
 				ne->inode = ino;
-				ne->rec_len = (u16)(slack);
+				ne->rec_len = (u16)slack;
 				ne->name_len = (u8)namelen;
 				ne->file_type = ftype;
 				memcpy(ne->name, name, namelen);
@@ -576,14 +575,14 @@ static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
 	 * ext2_write_block 会自动分配物理块。
 	 */
 	memset(block_buf, 0, block_size);
-	struct ext2_dir_entry *ne = (struct ext2_dir_entry *)block_buf;
+	const auto ne = (struct ext2_dir_entry *)block_buf;
 	ne->inode = ino;
 	ne->rec_len = (u16)block_size; /* 占满整个块 */
 	ne->name_len = (u8)namelen;
 	ne->file_type = ftype;
 	memcpy(ne->name, name, namelen);
 
-	u32 lbk = nblocks; /* 新块的逻辑块号 */
+	const u32 lbk = nblocks; /* 新块的逻辑块号 */
 	if (ext2_write_block(dir, lbk, block_buf) < 0)
 		return -1;
 
@@ -609,8 +608,8 @@ static i32 ext2_dir_add_entry(struct inode *dir, const char *name, u32 namelen,
  *
  * @return 成功返回新创建文件的 inode；失败返回 nullptr
  */
-struct inode *ext2_create(struct inode *dir, const char *name, i32 namelen,
-			  u32 mode)
+struct inode *ext2_create(struct inode *dir, const char *name,
+			  const i32 namelen, const u32 mode)
 {
 	if (dir == nullptr || name == nullptr || namelen <= 0)
 		return nullptr;
@@ -621,7 +620,7 @@ struct inode *ext2_create(struct inode *dir, const char *name, i32 namelen,
 		return nullptr;
 
 	/* 初始化磁盘上的 inode：清零整个 inode 大小的区域，写入 mode */
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 	u32 blk_no, off;
 	ext2_inode_loc(ino, &blk_no, &off);
 
@@ -635,7 +634,7 @@ struct inode *ext2_create(struct inode *dir, const char *name, i32 namelen,
 	memset(cache->data + off, 0, sbi->inode_size);
 
 	/* 填写必要字段 */
-	struct ext2_inode *raw = (struct ext2_inode *)(cache->data + off);
+	const auto raw = (struct ext2_inode *)(cache->data + off);
 	raw->i_mode = (u16)(S_IFREG | (mode & 0xFFFu));
 	raw->i_links_count = 1;
 
@@ -669,16 +668,16 @@ struct inode *ext2_create(struct inode *dir, const char *name, i32 namelen,
  *
  * @return 成功返回新目录的 inode；失败返回 nullptr
  */
-struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
-			 u32 mode)
+struct inode *ext2_mkdir(struct inode *dir, const char *name, const i32 namelen,
+			 const u32 mode)
 {
 	if (dir == nullptr || name == nullptr || namelen <= 0)
 		return nullptr;
 
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 
 	/* ── 1. 分配新 inode ──────────────────────────────────────── */
-	u32 ino = ext2_alloc_inode();
+	const u32 ino = ext2_alloc_inode();
 	if (ino == 0)
 		return nullptr;
 
@@ -693,14 +692,14 @@ struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 	}
 
 	memset(icache->data + off, 0, sbi->inode_size);
-	struct ext2_inode *raw = (struct ext2_inode *)(icache->data + off);
+	const auto raw = (struct ext2_inode *)(icache->data + off);
 	raw->i_mode = (u16)(S_IFDIR | (mode & 0xFFFu));
 	raw->i_links_count = 2; /* "." + 父目录中的条目 */
 	raw->i_size = fs.block_size;
 	raw->i_blocks = fs.block_size / 512;
 
 	/* ── 2. 分配数据块，写入 "." 和 ".." ─────────────────────── */
-	u32 data_blk = ext2_alloc_block();
+	const u32 data_blk = ext2_alloc_block();
 	if (data_blk == 0) {
 		brelse(icache);
 		ext2_free_inode(ino);
@@ -723,10 +722,10 @@ struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 	 * "." 条目：inode = 新目录自身
 	 * rec_len = sizeof(header) + 1 name byte，对齐到 4 字节 = 12
 	 */
-	u32 dot_rec = (u32)(sizeof(struct ext2_dir_entry) + 1);
+	u32 dot_rec = sizeof(struct ext2_dir_entry) + 1;
 	dot_rec = (dot_rec + 3) & ~3u;
 
-	struct ext2_dir_entry *dot = (struct ext2_dir_entry *)dcache->data;
+	const auto dot = (struct ext2_dir_entry *)dcache->data;
 	dot->inode = ino;
 	dot->rec_len = (u16)dot_rec;
 	dot->name_len = 1;
@@ -737,8 +736,7 @@ struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 	 * ".." 条目：inode = 父目录
 	 * rec_len 占满整个块的剩余部分
 	 */
-	struct ext2_dir_entry *dotdot =
-		(struct ext2_dir_entry *)(dcache->data + dot_rec);
+	const auto dotdot = (struct ext2_dir_entry *)(dcache->data + dot_rec);
 	dotdot->inode = dir->ino;
 	dotdot->rec_len = (u16)(fs.block_size - dot_rec);
 	dotdot->name_len = 2;
@@ -762,7 +760,7 @@ struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 	ext2_write_inode(dir);
 
 	/* ── 5. 更新块组描述符的 bg_used_dirs_count ──────────────── */
-	u32 group = (ino - 1) / sbi->inode_per_group;
+	const u32 group = (ino - 1) / sbi->inode_per_group;
 	struct ext2_bg_desc *gdesc = &sbi->gb_table[group];
 	gdesc->bg_used_dirs_count++;
 
@@ -772,9 +770,8 @@ struct inode *ext2_mkdir(struct inode *dir, const char *name, i32 namelen,
 	 */
 	struct blk_cache *sb_blk = bread(0);
 	if (sb_blk != nullptr) {
-		struct ext2_bg_desc *on_disk =
-			(struct ext2_bg_desc *)(sb_blk->data +
-						EXT2_GDESC_OFFSET);
+		const auto on_disk = (struct ext2_bg_desc *)(sb_blk->data +
+							     EXT2_GDESC_OFFSET);
 		on_disk[group].bg_used_dirs_count = gdesc->bg_used_dirs_count;
 		bwrite(sb_blk);
 		brelse(sb_blk);
@@ -806,7 +803,7 @@ i32 ext2_unlink(struct inode *dir, const char *name, i32 namelen)
 	if (dir == nullptr || name == nullptr || namelen <= 0)
 		return -1;
 
-	u32 block_size = fs.block_size;
+	const u32 block_size = fs.block_size;
 	u32 nblocks = (dir->size + block_size - 1) / block_size;
 	char block_buf[BLKSZ];
 
@@ -818,7 +815,7 @@ i32 ext2_unlink(struct inode *dir, const char *name, i32 namelen)
 		struct ext2_dir_entry *prev = nullptr;
 
 		while (pos + sizeof(struct ext2_dir_entry) <= block_size) {
-			struct ext2_dir_entry *de =
+			const auto de =
 				(struct ext2_dir_entry *)(block_buf + pos);
 
 			if (de->rec_len == 0)
@@ -826,7 +823,7 @@ i32 ext2_unlink(struct inode *dir, const char *name, i32 namelen)
 
 			if (de->inode != 0 && de->name_len == (u8)namelen &&
 			    memcmp(de->name, name, (usize)namelen) == 0) {
-				u32 target_ino = de->inode;
+				const u32 target_ino = de->inode;
 
 				/*
 				 * 删除策略：将此条目的 rec_len 合并给前一条目；

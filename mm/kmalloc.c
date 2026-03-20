@@ -1,4 +1,4 @@
-#include "kernel.h"
+#include "mm/kalloc.h"
 #include "utils.h"
 
 #define NUM_CACHES 9
@@ -54,4 +54,13 @@ void kmfree(void *ptr)
 
 	struct slab *s = (struct slab *)page;
 	cache_free(s->cache, ptr);
+}
+
+void cache_shrink_all(void)
+{
+	for (i32 i = 0; i < NUM_CACHES; i++) {
+		if (caches[i] != nullptr) {
+			cache_shrink(caches[i]);
+		}
+	}
 }

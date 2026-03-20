@@ -6,7 +6,7 @@
  * 块分配器通过操作块位图(bitmap)来跟踪每个块组中空闲块的使用状态。
  */
 
-#include "ext2.h"
+#include "ext2/ext2.h"
 #include "fs.h"
 
 /**
@@ -22,7 +22,7 @@
  */
 u32 ext2_alloc_block(void)
 {
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 	struct ext2_super_block *raw_sb = sbi->raw_sb;
 
 	// 遍历所有块组
@@ -49,7 +49,7 @@ u32 ext2_alloc_block(void)
 		bool found = false;
 		u32 nbytes = (blocks_in_group + 7) / 8;
 		for (u32 byte = 0; byte < nbytes && !found; byte++) {
-			u8 b = (u8)bmap->data[byte];
+			const u8 b = (u8)bmap->data[byte];
 			if (b == 0xFF)
 				continue;
 			for (u32 k = 0; k < 8; k++) {
@@ -76,9 +76,10 @@ u32 ext2_alloc_block(void)
 		gdesc->bg_free_blocks_count--;
 
 		u32 gdesc_per_blk = fs.block_size / sizeof(struct ext2_bg_desc);
-		u32 gdt_blk =
+		const u32 gdt_blk =
 			raw_sb->s_first_data_block + 1 + g / gdesc_per_blk;
-		u32 gdt_off = (g % gdesc_per_blk) * sizeof(struct ext2_bg_desc);
+		const u32 gdt_off =
+			g % gdesc_per_blk * sizeof(struct ext2_bg_desc);
 		struct blk_cache *gdt_cache = bread(gdt_blk);
 		if (gdt_cache != nullptr) {
 			memcpy(gdt_cache->data + gdt_off, gdesc,
@@ -107,9 +108,9 @@ u32 ext2_alloc_block(void)
  * @note 无效块号（0 或小于 s_first_data_block）将被忽略
  * @note 超出文件系统范围的块号将被忽略
  */
-void ext2_free_block(u32 blk_no)
+void ext2_free_block(const u32 blk_no)
 {
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 	struct ext2_super_block *raw_sb = sbi->raw_sb;
 
 	if (blk_no == 0)
@@ -129,16 +130,16 @@ void ext2_free_block(u32 blk_no)
 	struct blk_cache *bmap = bread(gdesc->bg_block_bitmap);
 	if (bmap == nullptr)
 		return;
-	u32 byte = bit / 8;
-	u32 k = bit % 8;
+	const u32 byte = bit / 8;
+	const u32 k = bit % 8;
 	bmap->data[byte] = (char)((u8)bmap->data[byte] & (u8) ~(1u << k));
 	bwrite(bmap);
 	brelse(bmap);
 
 	gdesc->bg_free_blocks_count++;
 	u32 gdesc_per_blk = fs.block_size / sizeof(struct ext2_bg_desc);
-	u32 gdt_blk = raw_sb->s_first_data_block + 1 + g / gdesc_per_blk;
-	u32 gdt_off = (g % gdesc_per_blk) * sizeof(struct ext2_bg_desc);
+	const u32 gdt_blk = raw_sb->s_first_data_block + 1 + g / gdesc_per_blk;
+	const u32 gdt_off = g % gdesc_per_blk * sizeof(struct ext2_bg_desc);
 	struct blk_cache *gdt_cache = bread(gdt_blk);
 	if (gdt_cache != nullptr) {
 		memcpy(gdt_cache->data + gdt_off, gdesc,

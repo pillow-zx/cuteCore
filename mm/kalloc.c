@@ -1,7 +1,8 @@
-#include "kernel.h"
+#include "mm/kalloc.h"
 #include "config.h"
 #include "log.h"
 #include "list.h"
+#include "utils.h"
 
 void freerange(void *pa_start, void *pa_end);
 

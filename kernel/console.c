@@ -1,6 +1,6 @@
 #include <stdarg.h>
 
-#include "kernel.h"
+#include "kernel/console.h"
 #include "driver.h"
 
 static usize printstr(const char *s)

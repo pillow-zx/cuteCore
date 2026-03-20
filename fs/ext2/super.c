@@ -6,7 +6,7 @@
  * 块组描述符表加载、文件系统布局计算等核心功能。
  */
 
-#include "ext2.h"
+#include "ext2/ext2.h"
 #include "fs.h"
 #include "utils.h"
 

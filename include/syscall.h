@@ -1,6 +1,9 @@
 #ifndef SYSCALL_H
 #define SYSCALL_H
 
+
+#include "types.h"
+
 #define SYS_DUP 23
 #define SYS_DUP3 24
 #define SYS_UMOUNT2 39
@@ -24,5 +27,9 @@
 #define SYS_MMAP 222
 #define SYS_WAIT4 260
 #define SYS_GETRANDOM 278
+
+void argint(const i32 n, i32 *ip);
+void argaddr(const i32 n, u64 *ip);
+i32 argstr(const i32 n, char *buf, const i32 max);
 
 #endif

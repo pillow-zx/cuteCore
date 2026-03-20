@@ -1,4 +1,4 @@
-#include "kernel.h"
+#include "kernel/sbi.h"
 
 #define SBI_EXT_SRST 0x53525354
 #define SBI_SRST_SHUTDOWN 0x00000000

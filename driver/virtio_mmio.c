@@ -6,9 +6,9 @@
  * 驱动使用轮询方式（非中断）处理 I/O 请求，支持 512 字节扇区的读写操作。
  */
 
+#include "driver/virtio_mmio.h"
 #include "driver.h"
 #include "log.h"
-#include "virtio_mmio.h"
 
 /** @brief VirtIO 请求队列，对齐到块大小 */
 struct virtqueue disk_queue __aligned(BLKSZ);
@@ -20,6 +20,7 @@ static struct virtio_blk_io disk_io;
  * @brief 读取 VirtIO MMIO 寄存器
  *
  * @param reg 寄存器偏移量
+ *
  * @return 寄存器值
  */
 __always_inline u32 vio_read(u32 reg)
@@ -155,7 +156,7 @@ void blkinit(void)
  * @note 当前实现为同步阻塞，未来可改用中断提高效率
  * @note 硬编码描述符索引，一次只能处理一个请求
  */
-static void virtio_blk_submit(u32 type, u64 sector, char *data)
+static void virtio_blk_submit(u32 type, u64 sector, const char *data)
 {
 	// TODO: 这里的逻辑是同步的，未来可以使用中断代替轮询，提高效率;
 	// TODO: 硬编码desc使得一次只能处理一个请求，未来可以通过动态管理QSIZE来支持高并发
@@ -211,7 +212,7 @@ static void virtio_blk_submit(u32 type, u64 sector, char *data)
  * 由于设备以 512 字节扇区为单位操作，需要多次调用 virtio_blk_submit。
  *
  * @param no 目标块号（BLKSZ 大小的块）
- * @param data 数据缓冲区指针（至少 BLKSZ 字节）
+ * @param data 数据缓冲区指针（至少 BLKSZ 字节，用于接收数据）
  */
 void blkread(u64 no, char *data)
 {
@@ -229,9 +230,9 @@ void blkread(u64 no, char *data)
  * 由于设备以 512 字节扇区为单位操作，需要多次调用 virtio_blk_submit。
  *
  * @param no 目标块号（BLKSZ 大小的块）
- * @param data 数据缓冲区指针（至少 BLKSZ 字节）
+ * @param data 数据缓冲区指针（至少 BLKSZ 字节，包含要写入的数据）
  */
-void blkwrite(u64 no, char *data)
+void blkwrite(u64 no, const char *data)
 {
 	const u64 first_sector = no * (BLKSZ / 512);
 

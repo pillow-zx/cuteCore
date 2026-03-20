@@ -6,8 +6,8 @@
  * 读取、写入、缓存管理以及磁盘空间释放等操作。
  */
 
-#include "ext2.h"
-#include "ext2_def.h"
+#include "ext2/ext2.h"
+#include "ext2/ext2_def.h"
 #include "fs.h"
 #include "log.h"
 
@@ -22,24 +22,24 @@
  *
  * @note inode 号超出范围将触发 panic
  */
-void ext2_inode_loc(u32 ino, u32 *blk_no, u32 *offset)
+void ext2_inode_loc(const u32 ino, u32 *blk_no, u32 *offset)
 {
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 
-	u32 ino_idx = ino - 1;
+	const u32 ino_idx = ino - 1;
 
 	// 组索引，确定inode属于哪一个块组
-	u32 group = ino_idx / sbi->inode_per_group;
+	const u32 group = ino_idx / sbi->inode_per_group;
 
 	if (group >= sbi->group_count)
 		panic("ext2: inode %u out of range", ino);
 
 	// 组内偏移
-	u32 local_ino = ino_idx % sbi->inode_per_group;
+	const u32 local_ino = ino_idx % sbi->inode_per_group;
 
 	struct ext2_bg_desc *gdesc = &sbi->gb_table[group];
 
-	u32 ino_table_offset = local_ino * sbi->inode_size;
+	const u32 ino_table_offset = local_ino * sbi->inode_size;
 
 	// 块号计算
 	*blk_no = gdesc->bg_inode_table + ino_table_offset / fs.block_size;
@@ -58,7 +58,7 @@ void ext2_inode_loc(u32 ino, u32 *blk_no, u32 *offset)
  *
  * @note 返回的 inode 引用计数为 1，使用完毕应调用 iput 释放
  */
-struct inode *ext2_iget(u32 ino)
+struct inode *ext2_iget(const u32 ino)
 {
 	if (ino == 0)
 		return nullptr;
@@ -66,8 +66,7 @@ struct inode *ext2_iget(u32 ino)
 	// 先查找inode缓存
 	struct list_head *pos;
 	list_for_each(pos, &fs.inode_cache) {
-		struct inode *cached =
-			list_entry(pos, struct inode, cache_link);
+		const auto cached = list_entry(pos, struct inode, cache_link);
 		if (cached->ino == ino) {
 			cached->ref++;
 			return cached;
@@ -134,7 +133,7 @@ i32 ext2_read_inode(struct inode *inode)
 		return -1;
 
 	// 获得原始ext2_inode
-	struct ext2_inode *raw = (struct ext2_inode *)(cache->data + offset);
+	const auto raw = (struct ext2_inode *)(cache->data + offset);
 
 	inode->mode = raw->i_mode;
 	inode->uid = raw->i_uid;
@@ -152,8 +151,7 @@ i32 ext2_read_inode(struct inode *inode)
 		inode->type = INODE_FILE;
 
 	// 将磁盘上的i_block数据拷贝的fs_private中
-	struct ext2_inode_info *info =
-		(struct ext2_inode_info *)inode->fs_private;
+	const auto info = (struct ext2_inode_info *)inode->fs_private;
 	for (i32 i = 0; i < EXT2_N_BLOCKS; i++)
 		info->i_block[i] = raw->i_block[i];
 	info->i_flags = raw->i_flags;
@@ -188,9 +186,8 @@ i32 ext2_write_inode(struct inode *inode)
 	if (cache == nullptr)
 		return -1;
 
-	struct ext2_inode *raw = (struct ext2_inode *)(cache->data + offset);
-	struct ext2_inode_info *info =
-		(struct ext2_inode_info *)inode->fs_private;
+	const auto raw = (struct ext2_inode *)(cache->data + offset);
+	const auto info = (struct ext2_inode_info *)inode->fs_private;
 
 	raw->i_mode = (u16)inode->mode;
 	raw->i_uid = (u16)inode->uid;
@@ -249,6 +246,8 @@ struct inode_ops ext2_inode_ops = {
 	.create = ext2_create,
 	.mkdir = ext2_mkdir,
 	.unlink = ext2_unlink,
+	.truncate = ext2_truncate_inode,
+	.free_inode = ext2_free_inode,
 };
 
 /**
@@ -263,7 +262,7 @@ struct inode_ops ext2_inode_ops = {
  * @param block_nr 待释放的块号
  * @param level 递归深度（0 为直接块，1-3 为间接索引层级）
  */
-static void ext2_free_branch(u32 block_nr, i32 level)
+static void ext2_free_branch(const u32 block_nr, const i32 level)
 {
 	if (block_nr == 0)
 		return;
@@ -271,8 +270,8 @@ static void ext2_free_branch(u32 block_nr, i32 level)
 	if (level > 0) {
 		struct blk_cache *cache = bread(block_nr);
 		if (cache != nullptr) {
-			u32 *ptrs = (u32 *)cache->data;
-			u32 ptrs_per_blk = fs.block_size / 4;
+			const auto ptrs = (u32 *)cache->data;
+			const u32 ptrs_per_blk = fs.block_size / 4;
 
 			for (u32 i = 0; i < ptrs_per_blk; i++) {
 				if (ptrs[i] != 0) {
@@ -326,72 +325,3 @@ void ext2_truncate_inode(struct inode *inode)
 	inode->dirty = true;
 	ext2_write_inode(inode);
 }
-
-/* void ext2_truncate_inode(struct inode *inode) */
-/* { */
-/* 	if (inode == nullptr) */
-/* 		return; */
-
-/* 	// 获取Ext2私有信息 */
-/* 	struct ext2_inode_info *info = */
-/* 		(struct ext2_inode_info *)inode->fs_private; */
-
-/* 	// 计算一个块能存放的32位(4字节)块指针数量 */
-/* 	u32 ptrs_per_blk = fs.block_size / 4; */
-
-/* 	// stage1: 释放直接块索引 */
-/* 	for (u32 i = 0; i < EXT2_NDIR_BLOCKS; i++) { */
-/* 		if (info->i_block[i] != 0) { */
-/* 			ext2_free_block(info->i_block[i]); */
-/* 			info->i_block[i] = 0; */
-/* 		} */
-/* 	} */
-
-/* 	// stage2: 释放一级间接索引块 */
-/* 	if (info->i_block[EXT2_IND_BLOCK] != 0) { */
-/* 		struct blk_cache *ind = bread(info->i_block[EXT2_IND_BLOCK]); */
-/* 		if (ind != nullptr) { */
-/* 			u32 *ptrs = (u32 *)ind->data; */
-/* 			for (u32 i = 0; i < ptrs_per_blk; i++) { */
-/* 				if (ptrs[i] != 0) */
-/* 					ext2_free_block(ptrs[i]); */
-/* 			} */
-/* 			brelse(ind); */
-/* 		} */
-/* 		ext2_free_block(info->i_block[EXT2_IND_BLOCK]); */
-/* 		info->i_block[EXT2_IND_BLOCK] = 0; */
-/* 	} */
-
-/* 	// stage3: 释放二级间接索引块 */
-/* 	if (info->i_block[EXT2_DIND_BLOCK] != 0) { */
-/* 		struct blk_cache *dind = bread(info->i_block[EXT2_DIND_BLOCK]); */
-/* 		if (dind != nullptr) { */
-/* 			u32 *dptrs = (u32 *)dind->data; */
-/* 			for (u32 i = 0; i < ptrs_per_blk; i++) { */
-/* 				if (dptrs[i] == 0) */
-/* 					continue; */
-/* 				struct blk_cache *ind = bread(dptrs[i]); */
-/* 				if (ind != nullptr) { */
-/* 					u32 *iptrs = (u32 *)ind->data; */
-/* 					for (u32 j = 0; j < ptrs_per_blk; j++) { */
-/* 						if (iptrs[j] != 0) */
-/* 							ext2_free_block( */
-/* 								iptrs[j]); */
-/* 					} */
-/* 					brelse(ind); */
-/* 				} */
-/* 				ext2_free_block(dptrs[i]); */
-/* 			} */
-/* 			brelse(dind); */
-/* 		} */
-/* 		ext2_free_block(info->i_block[EXT2_DIND_BLOCK]); */
-/* 		info->i_block[EXT2_DIND_BLOCK] = 0; */
-/* 	} */
-
-/* 	// stage4：更新元数据 */
-/* 	inode->size = 0; */
-/* 	inode->dirty = true; */
-
-/* 	// 将更新后的数据写回磁盘 */
-/* 	ext2_write_inode(inode); */
-/* } */

@@ -11,6 +11,12 @@ struct list_head {
 #define LIST_HEAD_INIT(name) {&(name), &(name)}
 #define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
 
+/**
+ * @brief 初始化嵌入式链表节点
+ *
+ * @param list 链表头节点
+ *
+ */
 __always_inline void list_init(struct list_head *list)
 {
 	list->next = list;

@@ -1,6 +1,10 @@
+#include "kernel/syscall.h"
+#include "kernel/task.h"
+#include "kernel/trap.h"
+#include "mm/kalloc.h"
+#include "mm/vm.h"
 #include "proc.h"
 #include "config.h"
-#include "kernel.h"
 #include "log.h"
 #include "riscv.h"
 #include "utils.h"
@@ -15,22 +19,19 @@ struct cpu cpus[NCPU];
 unsigned char pid_bitmap[PIDBITMAP];
 static i32 last_pid = 0;
 
-static pagetable_t mapproc(void);
-static void freeproc(struct proc *p);
-
-__always_inline void setpid(i32 pid)
+__always_inline void setpid(const i32 pid)
 {
-	pid_bitmap[pid / 8] |= (1 << (pid % 8));
+	pid_bitmap[pid / 8] |= 1 << (pid % 8);
 }
 
-__always_inline void freepid(i32 pid)
+__always_inline void freepid(const i32 pid)
 {
 	pid_bitmap[pid / 8] &= ~(1 << (pid % 8));
 }
 
-__always_inline bool checkpid(i32 pid)
+__always_inline bool checkpid(const i32 pid)
 {
-	return pid_bitmap[pid / 8] & (1 << (pid % 8));
+	return pid_bitmap[pid / 8] & 1 << (pid % 8);
 }
 
 static i32 allocpid(void)
@@ -68,7 +69,7 @@ void forkret(void)
 		init = true;
 
 		proc->trapframe->a0 =
-			sys_exec("/init", (char *[]){"/init", nullptr});
+			kexec("/init", (char *[]){"/init", nullptr});
 		if ((i64)proc->trapframe->a0 == -1)
 			panic("exec");
 	}
@@ -76,7 +77,7 @@ void forkret(void)
 	trapret();
 }
 
-__maybe_unused static struct proc *allocproc(void)
+struct proc *allocproc(void)
 {
 	struct proc *proc = cache_alloc(proc_cache);
 	if (proc == nullptr)
@@ -84,6 +85,10 @@ __maybe_unused static struct proc *allocproc(void)
 
 	proc->pid = allocpid();
 	proc->state = SLEEPING;
+	proc->sz = 0;
+	proc->brk = 0;
+	proc->stack_bottom = 0;
+	proc->stack_top = 0;
 
 	if ((proc->kstack = (u64)kalloc()) == 0) {
 		freeproc(proc);
@@ -105,12 +110,15 @@ __maybe_unused static struct proc *allocproc(void)
 	return proc;
 }
 
-static void freeproc(struct proc *p)
+void freeproc(struct proc *p)
 {
-	if (p == nullptr) {
-		uvmfree(p->root, p->sz);
-		p->root = nullptr;
-	}
+	if (p == nullptr)
+		return;
+
+	uvmfree(p->root, p->sz, p->stack_bottom, p->stack_top);
+	p->root = nullptr;
+	p->stack_bottom = 0;
+	p->stack_top = 0;
 
 	if (p->kstack != 0) {
 		kfree((void *)p->kstack);
@@ -128,13 +136,10 @@ static void freeproc(struct proc *p)
 	p->parent = nullptr;
 	p->name[0] = '\0';
 
-	{
-	}
-
 	cache_free(proc_cache, p);
 }
 
-static pagetable_t mapproc(void)
+pagetable_t mapproc(void)
 {
 	pagetable_t root = uvmcreate();
 	if (root == nullptr)

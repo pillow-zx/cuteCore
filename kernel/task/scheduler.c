@@ -1,4 +1,5 @@
-#include "kernel.h"
+#include "kernel/task.h"
+#include "fs.h"
 #include "riscv.h"
 
 void scheduler(void)
@@ -7,6 +8,7 @@ void scheduler(void)
 	struct cpu *cpu = curcpu();
 
 	for (;;) {
+		intr_off();
 		if (ready_list_head != nullptr) {
 			bsync();
 			proc = ready_list_head;
@@ -18,10 +20,11 @@ void scheduler(void)
 
 			proc->state = RUNNING;
 
+			cpu->proc = proc;
+
 			swtch(&cpu->context, &proc->context);
 
-			cpu->proc = proc;
-			cpu->context = proc->context;
+			cpu->proc = nullptr;
 
 		} else {
 			bsync();

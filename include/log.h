@@ -1,7 +1,8 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include "kernel.h"
+#include "kernel/console.h"
+#include "kernel/sbi.h"
 
 #define ANSI_FG_BLACK "\33[1;30m"
 #define ANSI_FG_RED "\33[1;31m"

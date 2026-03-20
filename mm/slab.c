@@ -1,8 +1,10 @@
-#include "kernel.h"
+#include "mm/kalloc.h"
 #include "config.h"
 #include "utils.h"
 
 #define CACHEALIGN alignof(void *)
+
+#define MAX_EMPTY_SLABS 2
 
 static void list_remove(struct slab **head, struct slab *s)
 {
@@ -37,6 +39,7 @@ struct cache *cache_create(u32 size)
 	cache->slabs_full = nullptr;
 	cache->slabs_partial = nullptr;
 	cache->slabs_empty = nullptr;
+	cache->empty_slabs = 0;
 
 	return cache;
 }
@@ -74,6 +77,7 @@ void *cache_alloc(struct cache *cache)
 			slabinit(cache, s);
 		} else {
 			list_remove(&cache->slabs_empty, s);
+			cache->empty_slabs--;
 		}
 		list_insert(&cache->slabs_partial, s);
 	}
@@ -104,5 +108,25 @@ void cache_free(struct cache *cache, void *obj)
 	} else if (s->freenum == s->objectsnum) {
 		list_remove(&cache->slabs_partial, s);
 		list_insert(&cache->slabs_empty, s);
+		cache->empty_slabs++;
+
+		if (cache->empty_slabs > MAX_EMPTY_SLABS) {
+			cache_shrink(cache);
+		}
 	}
 }
+
+void cache_shrink(struct cache *cache)
+{
+	struct slab *s = cache->slabs_empty;
+	struct slab *next;
+
+	while (s != nullptr && cache->empty_slabs > MAX_EMPTY_SLABS) {
+		next = s->next;
+		list_remove(&cache->slabs_empty, s);
+		cache->empty_slabs--;
+		kfree((void *)s);
+		s = next;
+	}
+}
+

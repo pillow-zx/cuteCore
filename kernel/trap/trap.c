@@ -1,4 +1,6 @@
-#include "kernel.h"
+#include "kernel/task.h"
+#include "kernel/trap.h"
+#include "kernel/syscall.h"
 #include "proc.h"
 #include "riscv.h"
 #include "log.h"
@@ -13,7 +15,8 @@ void trapinit(void)
 
 void trapret(void)
 {
-	const struct proc *p = curproc();
+	struct proc *p = curproc();
+
 	w_csr(sepc, p->trapframe->sepc);
 
 	u64 sstatus = r_csr(sstatus);
@@ -21,7 +24,7 @@ void trapret(void)
 	sstatus |= SSTATUS_SPIE;
 	w_csr(sstatus, sstatus);
 
-	w_csr(sscratch, p->trapframe->sp);
+	w_csr(sscratch, (u64)p->trapframe + TRAPFRAME_SZ);
 
 	w_csr(satp, MAKESATP(p->root));
 	sfence_vma();

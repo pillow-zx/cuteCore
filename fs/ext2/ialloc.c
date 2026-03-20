@@ -6,7 +6,7 @@
  * inode 分配器通过操作 inode 位图来跟踪每个块组中空闲 inode 的使用状态。
  */
 
-#include "ext2.h"
+#include "ext2/ext2.h"
 #include "fs.h"
 
 /**
@@ -22,7 +22,7 @@
  */
 u32 ext2_alloc_inode(void)
 {
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 	struct ext2_super_block *raw_sb = sbi->raw_sb;
 
 	for (u32 g = 0; g < sbi->group_count; g++) {
@@ -36,7 +36,7 @@ u32 ext2_alloc_inode(void)
 			return 0;
 
 		u32 inodes_in_group = sbi->inode_per_group;
-		u32 base_ino = g * sbi->inode_per_group;
+		const u32 base_ino = g * sbi->inode_per_group;
 		if (base_ino + inodes_in_group > raw_sb->s_inode_count)
 			inodes_in_group = raw_sb->s_inode_count - base_ino;
 
@@ -44,11 +44,11 @@ u32 ext2_alloc_inode(void)
 		bool found = false;
 		u32 nbytes = (inodes_in_group + 7) / 8;
 		for (u32 byte = 0; byte < nbytes && !found; byte++) {
-			u8 b = (u8)bmap->data[byte];
+			const u8 b = (u8)bmap->data[byte];
 			if (b == 0xFF)
 				continue;
 			for (u32 k = 0; k < 8; k++) {
-				if (b & (1u << k))
+				if (b & 1u << k)
 					continue;
 				bit = byte * 8 + k;
 				if (bit >= inodes_in_group)
@@ -70,9 +70,10 @@ u32 ext2_alloc_inode(void)
 
 		gdesc->bg_free_inodes_count--;
 		u32 gdesc_per_blk = fs.block_size / sizeof(struct ext2_bg_desc);
-		u32 gdt_blk =
+		const u32 gdt_blk =
 			raw_sb->s_first_data_block + 1 + g / gdesc_per_blk;
-		u32 gdt_off = (g % gdesc_per_blk) * sizeof(struct ext2_bg_desc);
+		const u32 gdt_off =
+			g % gdesc_per_blk * sizeof(struct ext2_bg_desc);
 		struct blk_cache *gdt_cache = bread(gdt_blk);
 		if (gdt_cache != nullptr) {
 			memcpy(gdt_cache->data + gdt_off, gdesc,
@@ -100,17 +101,17 @@ u32 ext2_alloc_inode(void)
  *
  * @note 无效 inode 号（0 或超出范围）将被忽略
  */
-void ext2_free_inode(u32 ino)
+void ext2_free_inode(const u32 ino)
 {
-	struct ext2_sb_info *sbi = (struct ext2_sb_info *)fs.fs_private;
+	const auto sbi = (struct ext2_sb_info *)fs.fs_private;
 	struct ext2_super_block *raw_sb = sbi->raw_sb;
 
 	if (ino == 0)
 		return;
 
-	u32 idx = ino - 1;
-	u32 g = idx / sbi->inode_per_group;
-	u32 bit = idx % sbi->inode_per_group;
+	const u32 idx = ino - 1;
+	const u32 g = idx / sbi->inode_per_group;
+	const u32 bit = idx % sbi->inode_per_group;
 
 	if (g >= sbi->group_count)
 		return;
@@ -120,16 +121,16 @@ void ext2_free_inode(u32 ino)
 	struct blk_cache *bmap = bread(gdesc->bg_inode_bitmap);
 	if (bmap == nullptr)
 		return;
-	u32 byte = bit / 8;
-	u32 k = bit % 8;
+	const u32 byte = bit / 8;
+	const u32 k = bit % 8;
 	bmap->data[byte] = (char)((u8)bmap->data[byte] & (u8) ~(1u << k));
 	bwrite(bmap);
 	brelse(bmap);
 
 	gdesc->bg_free_inodes_count++;
 	u32 gdesc_per_blk = fs.block_size / sizeof(struct ext2_bg_desc);
-	u32 gdt_blk = raw_sb->s_first_data_block + 1 + g / gdesc_per_blk;
-	u32 gdt_off = (g % gdesc_per_blk) * sizeof(struct ext2_bg_desc);
+	const u32 gdt_blk = raw_sb->s_first_data_block + 1 + g / gdesc_per_blk;
+	const u32 gdt_off = g % gdesc_per_blk * sizeof(struct ext2_bg_desc);
 	struct blk_cache *gdt_cache = bread(gdt_blk);
 	if (gdt_cache != nullptr) {
 		memcpy(gdt_cache->data + gdt_off, gdesc,

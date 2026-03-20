@@ -11,6 +11,6 @@ void uartinit(void);
 
 void blkinit(void);
 void blkread(u64 no, char *data);
-void blkwrite(u64 no, char *data);
+void blkwrite(u64 no, const char *data);
 
 #endif

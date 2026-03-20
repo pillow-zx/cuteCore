@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include "types.h"
+#include "config.h"
 
 #define BITS_U8(n) ((u8)(1) << (n))
 #define BITS_U64(n) ((u64)(1) << (n))
@@ -26,6 +27,7 @@
 #define __section(x) __attribute__(("x"))
 
 #define ALIGNUP(size, align) (((size) + (align) - 1) & ~((align) - 1))
+#define ALIGNDOWN(size, align) ((size) & ~((align) - 1))
 
 struct slab {
 	struct slab *next;
@@ -41,11 +43,11 @@ struct cache {
 	struct slab *slabs_full;
 	struct slab *slabs_partial;
 	struct slab *slabs_empty;
+	int empty_slabs;
 };
 
-__access(write_only, 1, 3)
-	__access(read_only, 2, 3) void *memcpy(void *s1, const void *s2,
-					       usize n);
+__access(write_only, 1, 3) __access(read_only, 2, 3)
+void *memcpy(void *s1, const void *s2, usize n);
 void *memmove(void *s1, const void *s2, usize n);
 __access(write_only, 1, 3) void *memset(void *s, i32 c, size_t n);
 int memcmp(const void *s1, const void *s2, usize n);
@@ -57,6 +59,8 @@ __pure size_t strlen(const char *s);
 struct cache *cache_create(u32 size);
 void *cache_alloc(struct cache *cache);
 void cache_free(struct cache *cache, void *obj);
+void cache_shrink(struct cache *cache);
+void cache_shrink_all(void);
 
 void kmallocinit(void);
 void *kmalloc(usize size);
